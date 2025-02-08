@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "de.nexusrealms.riftbone.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ExampleMixin",
+    "PlayerEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+	}
+}
