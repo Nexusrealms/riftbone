@@ -1,6 +1,7 @@
 package de.nexusrealms.riftbone;
 
 import com.mojang.serialization.Codec;
+import de.nexusrealms.riftbone.client.LegacyGraveEntity;
 import dev.emi.trinkets.api.SlotReference;
 import net.fabricmc.api.ModInitializer;
 
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class Riftbone implements ModInitializer {
 	public static final String MOD_ID = "riftbone";
+	public static final String LEGACY_MOD_ID = "riftrealmsutils";
 
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
@@ -29,6 +31,8 @@ public class Riftbone implements ModInitializer {
 	public static final ComponentType<Integer> SAVED_SLOT = ComponentType.<Integer>builder().codec(Codec.INT).build();
 
 	public static final EntityType<GraveEntity> GRAVE = EntityType.Builder.<GraveEntity>create(GraveEntity::new, SpawnGroup.MISC).dimensions(0.5f, 0.5f).build();
+	public static final EntityType<LegacyGraveEntity> LEGACY_GRAVE = EntityType.Builder.<LegacyGraveEntity>create(LegacyGraveEntity::new, SpawnGroup.MISC).dimensions(0.5f, 0.5f).build();
+
 	public static final TagKey<Item> SOULBOUND = TagKey.of(Registries.ITEM.getKey(), Identifier.of(MOD_ID, "soulbound"));
 
 	public static final GameRules.Key<GameRules.BooleanRule> OWNER_ONLY_LOOTING = GameRuleRegistry.register("ownerOnlyLooting", GameRules.Category.PLAYER, GameRuleFactory.createBooleanRule(false));
@@ -43,6 +47,7 @@ public class Riftbone implements ModInitializer {
 		// Proceed with mild caution.
 		Registry.register(Registries.DATA_COMPONENT_TYPE, Identifier.of(MOD_ID, "saved_slot"), SAVED_SLOT);
 		Registry.register(Registries.ENTITY_TYPE, Identifier.of(MOD_ID, "grave"), GRAVE);
+		Registry.register(Registries.ENTITY_TYPE, Identifier.of(LEGACY_MOD_ID, "grave"), LEGACY_GRAVE);
 		LOGGER.info("Hello Fabric world!");
 		isTrinketsLoaded = FabricLoader.getInstance().isModLoaded("trinkets");
 		TrinketsCompat.init();

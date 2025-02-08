@@ -11,10 +11,11 @@ import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.SkullEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 
-public class GraveEntityRenderer extends EntityRenderer<GraveEntity> {
+public class GraveEntityRenderer extends EntityRenderer<Entity> {
     private final SkullBlockEntityModel skullBlockEntityModel;
     private final Identifier texture = Identifier.ofVanilla("textures/entity/skeleton/skeleton.png");
     public GraveEntityRenderer(EntityRendererFactory.Context ctx) {
@@ -23,12 +24,12 @@ public class GraveEntityRenderer extends EntityRenderer<GraveEntity> {
     }
 
     @Override
-    public Identifier getTexture(GraveEntity entity) {
+    public Identifier getTexture(Entity entity) {
         return texture;
     }
 
     @Override
-    public void render(GraveEntity entity, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+    public void render(Entity entity, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
         super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
         matrices.push();
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));

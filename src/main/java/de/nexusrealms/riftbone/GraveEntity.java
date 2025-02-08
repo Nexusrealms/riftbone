@@ -1,5 +1,6 @@
 package de.nexusrealms.riftbone;
 
+import de.nexusrealms.riftbone.client.LegacyGraveEntity;
 import dev.emi.trinkets.api.TrinketsApi;
 import net.minecraft.component.ComponentType;
 import net.minecraft.entity.Entity;
@@ -59,6 +60,13 @@ public class GraveEntity extends Entity {
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
         TrinketsCompat.onGraveSpawn(entity);
+    }
+    public GraveEntity(LegacyGraveEntity legacyGraveEntity){
+        super(Riftbone.GRAVE, legacyGraveEntity.getWorld());
+        dataTracker.set(OWNER, legacyGraveEntity.getDataTracker().get(LegacyGraveEntity.OWNER));
+        setCustomName(legacyGraveEntity.getCustomName());
+        legacyGraveEntity.graveInventory.heldStacks.forEach(inventory::addStack);
+        copyPositionAndRotation(legacyGraveEntity);
     }
     private void addStack(PlayerEntity player, ItemStack stack, int slot) {
         if(!SoulboundHandler.isSoulbound(stack, player)) {
