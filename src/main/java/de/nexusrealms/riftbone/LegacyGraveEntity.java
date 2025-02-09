@@ -1,6 +1,5 @@
-package de.nexusrealms.riftbone.client;
+package de.nexusrealms.riftbone;
 
-import de.nexusrealms.riftbone.GraveEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.data.DataTracker;

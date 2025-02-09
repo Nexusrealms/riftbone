@@ -1,8 +1,6 @@
 package de.nexusrealms.riftbone;
 
 import com.mojang.serialization.Codec;
-import de.nexusrealms.riftbone.client.LegacyGraveEntity;
-import dev.emi.trinkets.api.SlotReference;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
