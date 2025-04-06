@@ -3,7 +3,7 @@
 	"id": "riftbone",
 	"version": "${version}",
 	"name": "Riftbone",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "A simple grave / remains mod to keep your items safe and ready for recovery",
 	"authors": [
 		"Farpo"
 	],
