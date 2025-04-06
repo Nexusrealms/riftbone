@@ -8,8 +8,8 @@
 		"Farpo"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://nexusrealms.de/",
+		"sources": "https://github.com/Nexusrealms/riftbone"
 	},
 	"license": "MIT",
 	"icon": "assets/riftbone/icon.png",
