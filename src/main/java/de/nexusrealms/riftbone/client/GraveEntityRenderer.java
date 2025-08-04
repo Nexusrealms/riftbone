@@ -10,31 +10,32 @@ import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.SkullEntityModel;
+import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 
-public class GraveEntityRenderer extends EntityRenderer<Entity> {
+public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderState> {
     private final SkullBlockEntityModel skullBlockEntityModel;
     private final Identifier texture = Identifier.ofVanilla("textures/entity/skeleton/skeleton.png");
     public GraveEntityRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
-        skullBlockEntityModel = new SkullEntityModel(ctx.getModelLoader().getModelPart(EntityModelLayers.SKELETON_SKULL));
+        skullBlockEntityModel = new SkullEntityModel(ctx.getEntityModels().getModelPart(EntityModelLayers.SKELETON_SKULL));
     }
 
     @Override
-    public Identifier getTexture(Entity entity) {
-        return texture;
+    public EntityRenderState createRenderState() {
+        return new EntityRenderState();
     }
-
     @Override
-    public void render(Entity entity, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
-        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+    public void render(EntityRenderState state, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+        super.render(state, matrices, vertexConsumers, light);
         matrices.push();
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCullZOffset(texture));
         skullBlockEntityModel.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV);
         matrices.pop();
     }
+
 }

@@ -1,15 +1,14 @@
 package de.nexusrealms.riftbone;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.MovementType;
+import net.minecraft.entity.*;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.inventory.StackWithSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -18,43 +17,43 @@ import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public class GraveEntity extends Entity {
-    private static final TrackedData<Optional<UUID>> OWNER = DataTracker.registerData(GraveEntity.class, TrackedDataHandlerRegistry.OPTIONAL_UUID);
+    protected static final TrackedData<Optional<LazyEntityReference<LivingEntity>>> OWNER = DataTracker.registerData(GraveEntity.class, TrackedDataHandlerRegistry.LAZY_ENTITY_REFERENCE);
 
     public GraveEntity(EntityType<?> type, World world) {
         super(type, world);
     }
     public GraveEntity(PlayerEntity entity) {
         super(Riftbone.GRAVE, entity.getWorld());
-        dataTracker.set(OWNER, Optional.of(entity.getUuid()));
+        dataTracker.set(OWNER, Optional.of(new LazyEntityReference<>(entity.getUuid())));
         setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
-        TrinketsCompat.onGraveSpawn(entity);
+        //TrinketsCompat.onGraveSpawn(entity);
     }
-    public GraveEntity(LegacyGraveEntity legacyGraveEntity){
-        super(Riftbone.GRAVE, legacyGraveEntity.getWorld());
-        dataTracker.set(OWNER, legacyGraveEntity.getDataTracker().get(LegacyGraveEntity.OWNER));
-        setCustomName(legacyGraveEntity.getCustomName());
-        legacyGraveEntity.graveInventory.heldStacks.forEach(inventory::addStack);
-        copyPositionAndRotation(legacyGraveEntity);
-    }
+
     private void addStack(PlayerEntity player, ItemStack stack, int slot) {
         if(!SoulboundHandler.isSoulbound(stack, player)) {
             stack.set(Riftbone.SAVED_SLOT, slot);
@@ -65,7 +64,7 @@ public class GraveEntity extends Entity {
         for (int i = 0; i < entity.getInventory().size(); i++) {
             addStack(entity, entity.getInventory().getStack(i), i);
         }
-        TrinketsCompat.addTrinketsToGrave(inventory, entity);
+        //TrinketsCompat.addTrinketsToGrave(inventory, entity);
     }
     private final SimpleInventory inventory = new SimpleInventory(54) {
         public ItemStack removeStack(int slot) {
@@ -87,21 +86,38 @@ public class GraveEntity extends Entity {
     }
 
     @Override
-    protected void readCustomDataFromNbt(NbtCompound nbt) {
-        RegistryWrapper.WrapperLookup registries = getRegistryManager();
-        inventory.readNbtList(nbt.getList("inventory", NbtElement.COMPOUND_TYPE), registries);
-        if(nbt.contains("owner")){
-            dataTracker.set(OWNER, Optional.of(nbt.getUuid("owner")));
+    protected void readCustomData(ReadView readView) {
+        //Automatic data migration
+        readView.read("owner", Uuids.INT_STREAM_CODEC).ifPresent(uuid1 -> dataTracker.set(OWNER, Optional.of(new LazyEntityReference<>(uuid1))));
+        ReadView.TypedListReadView<ItemStack> list = readView.getTypedListView("inventory", ItemStack.CODEC);
+        if(!list.isEmpty()){
+            inventory.readDataList(list);
+        }
+
+        for(StackWithSlot stackWithSlot : readView.getTypedListView("contents", StackWithSlot.CODEC)) {
+            if (stackWithSlot.isValidSlot(inventory.size())) {
+                inventory.setStack(stackWithSlot.slot(), stackWithSlot.stack());
+            }
+        }
+        LazyEntityReference<LivingEntity> lazyEntityReference = LazyEntityReference.fromDataOrPlayerName(readView, "Owner", this.getWorld());
+        if (lazyEntityReference != null) {
+            this.dataTracker.set(OWNER, Optional.of(lazyEntityReference));
+        } else {
+            this.dataTracker.set(OWNER, Optional.empty());
         }
     }
 
     @Override
-    protected void writeCustomDataToNbt(NbtCompound nbt) {
-        RegistryWrapper.WrapperLookup registries = getRegistryManager();
-        nbt.put("inventory", inventory.toNbtList(registries));
-        if (dataTracker.get(OWNER).isPresent()) {
-            nbt.putUuid("owner", dataTracker.get(OWNER).get());
+    protected void writeCustomData(WriteView writeView) {
+        WriteView.ListAppender<StackWithSlot> listAppender = writeView.getListAppender("contents", StackWithSlot.CODEC);
+        for(int i = 0; i < inventory.size(); ++i) {
+            ItemStack itemStack = inventory.getStack(i);
+            if (!itemStack.isEmpty()) {
+                listAppender.add(new StackWithSlot(i, itemStack));
+            }
         }
+        LazyEntityReference<LivingEntity> lazyEntityReference = this.getOwnerNullable();
+        LazyEntityReference.writeData(lazyEntityReference, writeView, "Owner");
     }
 
     @Override
@@ -112,7 +128,7 @@ public class GraveEntity extends Entity {
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
         if(!getWorld().isClient()){
-            if(!getWorld().getGameRules().getBoolean(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())){
+            if(!getWorld().getServer().getGameRules().getBoolean(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())){
                 if(player.isSneaking()){
                     quickLoot(player);
                     return ActionResult.SUCCESS;
@@ -130,9 +146,9 @@ public class GraveEntity extends Entity {
     }
     public void tick() {
         super.tick();
-        this.prevX = this.getX();
-        this.prevY = this.getY();
-        this.prevZ = this.getZ();
+        this.lastX = this.getX();
+        this.lastY = this.getY();
+        this.lastZ = this.getZ();
         Vec3d vec3d = this.getVelocity();
         float f = this.getStandingEyeHeight() - 0.11111111F;
         if (this.isTouchingWater() && this.getFluidHeight(FluidTags.WATER) > (double) f) {
@@ -144,7 +160,7 @@ public class GraveEntity extends Entity {
         }
         if (!this.getWorld().isClient && this.age % 100 == 0 && inventory.isEmpty()) {
             getWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
-            this.kill();
+            this.discard();
         }
         if (this.getWorld().isClient) {
             this.noClip = false;
@@ -173,7 +189,7 @@ public class GraveEntity extends Entity {
             }
         }
 
-        boolean bl = MathHelper.floor(this.prevX) != MathHelper.floor(this.getX()) || MathHelper.floor(this.prevY) != MathHelper.floor(this.getY()) || MathHelper.floor(this.prevZ) != MathHelper.floor(this.getZ());
+        boolean bl = MathHelper.floor(this.lastX) != MathHelper.floor(this.getX()) || MathHelper.floor(this.lastY) != MathHelper.floor(this.getY()) || MathHelper.floor(this.lastZ) != MathHelper.floor(this.getZ());
         int i = bl ? 2 : 40;
 
         this.velocityDirty |= this.updateWaterState();
@@ -188,15 +204,20 @@ public class GraveEntity extends Entity {
     }
     private boolean isOwner(UUID uuid){
         if(dataTracker.get(OWNER).isEmpty()) return false;
-        UUID uuid1 = dataTracker.get(OWNER).get();
+        UUID uuid1 = dataTracker.get(OWNER).get().getUuid();
         return uuid1.equals(uuid);
     }
+    @Nullable
+    public LazyEntityReference<LivingEntity> getOwnerNullable() {
+        return this.dataTracker.get(OWNER).orElse(null);
+    }
     private void quickLoot(PlayerEntity player){
-        if(getWorld().getGameRules().getBoolean(Riftbone.QUICK_LOOTING_ALLOWED) && (!getWorld().getGameRules().getBoolean(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))){
+        if(getWorld().getServer().getGameRules().getBoolean(Riftbone.QUICK_LOOTING_ALLOWED) && (!getWorld().getServer().getGameRules().getBoolean(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))){
             List<ItemStack> unslotted = new ArrayList<>();
             PlayerInventory playerInventory = player.getInventory();
             inventory.heldStacks.forEach(stack -> {
-                if(!TrinketsCompat.handleQuickLoot(stack, unslotted, player)){
+                //if(!TrinketsCompat.handleQuickLoot(stack, unslotted, player)){
+                if(true){
                     if(stack.contains(Riftbone.SAVED_SLOT)){
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
@@ -213,7 +234,7 @@ public class GraveEntity extends Entity {
             unslotted.forEach(stack -> {
                 playerInventory.offer(stack, false);
             });
-            this.kill();
+            this.discard();
             getWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
         } else {
             this.getWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
@@ -225,6 +246,12 @@ public class GraveEntity extends Entity {
     protected Entity.MoveEffect getMoveEffect() {
         return MoveEffect.NONE;
     }
+
+    @Override
+    public boolean damage(ServerWorld world, DamageSource source, float amount) {
+        return false;
+    }
+
     private void applyWaterBuoyancy() {
         Vec3d vec3d = this.getVelocity();
         this.setVelocity(vec3d.x * 0.9900000095367432, vec3d.y + (double) (vec3d.y < 0.05999999865889549 ? 5.0E-4F : 0.0F), vec3d.z * 0.9900000095367432);

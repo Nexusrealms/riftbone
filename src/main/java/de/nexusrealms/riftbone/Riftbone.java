@@ -12,6 +12,8 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameRules;
@@ -28,8 +30,7 @@ public class Riftbone implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final ComponentType<Integer> SAVED_SLOT = ComponentType.<Integer>builder().codec(Codec.INT).build();
 
-	public static final EntityType<GraveEntity> GRAVE = EntityType.Builder.<GraveEntity>create(GraveEntity::new, SpawnGroup.MISC).dimensions(0.5f, 0.5f).build();
-	public static final EntityType<LegacyGraveEntity> LEGACY_GRAVE = EntityType.Builder.<LegacyGraveEntity>create(LegacyGraveEntity::new, SpawnGroup.MISC).dimensions(0.5f, 0.5f).build();
+	public static final EntityType<GraveEntity> GRAVE = EntityType.Builder.<GraveEntity>create(GraveEntity::new, SpawnGroup.MISC).dimensions(0.5f, 0.5f).build(RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "grave")));
 
 	public static final TagKey<Item> SOULBOUND = TagKey.of(Registries.ITEM.getKey(), Identifier.of(MOD_ID, "soulbound"));
 
@@ -45,10 +46,9 @@ public class Riftbone implements ModInitializer {
 		// Proceed with mild caution.
 		Registry.register(Registries.DATA_COMPONENT_TYPE, Identifier.of(MOD_ID, "saved_slot"), SAVED_SLOT);
 		Registry.register(Registries.ENTITY_TYPE, Identifier.of(MOD_ID, "grave"), GRAVE);
-		Registry.register(Registries.ENTITY_TYPE, Identifier.of(LEGACY_MOD_ID, "grave"), LEGACY_GRAVE);
 		LOGGER.info("Hello Fabric world!");
 		isTrinketsLoaded = FabricLoader.getInstance().isModLoaded("trinkets");
-		TrinketsCompat.init();
+		//TrinketsCompat.init();
 		SoulboundCallback.IS_SOULBOUND.register((oldPlayer, stack) -> stack.isIn(SOULBOUND));
 	}
 }

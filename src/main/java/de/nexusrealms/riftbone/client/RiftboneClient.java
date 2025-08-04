@@ -8,6 +8,5 @@ public class RiftboneClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(Riftbone.GRAVE, GraveEntityRenderer::new);
-        EntityRendererRegistry.register(Riftbone.LEGACY_GRAVE, GraveEntityRenderer::new);
     }
 }

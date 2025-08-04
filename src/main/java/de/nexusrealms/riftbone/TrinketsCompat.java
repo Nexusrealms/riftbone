@@ -1,4 +1,4 @@
-package de.nexusrealms.riftbone;
+/*package de.nexusrealms.riftbone;
 
 import com.mojang.serialization.Codec;
 import dev.emi.trinkets.api.SlotReference;
@@ -69,4 +69,4 @@ public class TrinketsCompat {
         return false;
     }
 
-}
+}*/

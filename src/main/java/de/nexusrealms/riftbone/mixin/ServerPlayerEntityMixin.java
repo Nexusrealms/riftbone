@@ -19,16 +19,18 @@ import java.util.List;
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin extends PlayerEntity {
 
+    public ServerPlayerEntityMixin(World world, GameProfile profile) {
+        super(world, profile);
+    }
+
     @Shadow public abstract boolean startRiding(Entity entity, boolean force);
 
     @Shadow public abstract boolean shouldDamagePlayer(PlayerEntity player);
 
-    public ServerPlayerEntityMixin(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-        super(world, pos, yaw, gameProfile);
-    }
+
     @Inject(method = "copyFrom", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/server/network/ServerPlayerInteractionManager;setGameMode(Lnet/minecraft/world/GameMode;Lnet/minecraft/world/GameMode;)V"))
     public void copySoulbounds(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci){
-        if (!(this.getWorld().getGameRules().getBoolean(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) && !alive) {
+        if (!(this.getWorld().getServer().getGameRules().getBoolean(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) && !alive) {
             SoulboundHandler.transferSoulbounds(oldPlayer, (ServerPlayerEntity) (Object) this);
         }
     }
