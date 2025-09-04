@@ -1,10 +1,8 @@
-/*package de.nexusrealms.riftbone;
+package de.nexusrealms.riftbone;
 
 import com.mojang.serialization.Codec;
-import dev.emi.trinkets.api.SlotReference;
-import dev.emi.trinkets.api.TrinketComponent;
-import dev.emi.trinkets.api.TrinketInventory;
-import dev.emi.trinkets.api.TrinketsApi;
+import dev.emi.trinkets.api.*;
+import dev.emi.trinkets.api.event.TrinketDropCallback;
 import net.minecraft.component.ComponentType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -23,6 +21,7 @@ public class TrinketsCompat {
     public static void init(){
         if(Riftbone.isTrinketsLoaded){
             Registry.register(Registries.DATA_COMPONENT_TYPE, Identifier.of(Riftbone.MOD_ID, "saved_trinket_slot"), SAVED_TRINKET_SLOT);
+            TrinketDropCallback.EVENT.register((rule, stack, ref, entity) -> TrinketEnums.DropRule.KEEP);
         }
     }
     public static void onGraveSpawn(PlayerEntity player){
@@ -69,4 +68,4 @@ public class TrinketsCompat {
         return false;
     }
 
-}*/
+}

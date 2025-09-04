@@ -51,7 +51,7 @@ public class GraveEntity extends Entity {
         setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
-        //TrinketsCompat.onGraveSpawn(entity);
+        TrinketsCompat.onGraveSpawn(entity);
     }
 
     private void addStack(PlayerEntity player, ItemStack stack, int slot) {
@@ -64,7 +64,7 @@ public class GraveEntity extends Entity {
         for (int i = 0; i < entity.getInventory().size(); i++) {
             addStack(entity, entity.getInventory().getStack(i), i);
         }
-        //TrinketsCompat.addTrinketsToGrave(inventory, entity);
+        TrinketsCompat.addTrinketsToGrave(inventory, entity);
     }
     private final SimpleInventory inventory = new SimpleInventory(54) {
         public ItemStack removeStack(int slot) {
@@ -216,8 +216,7 @@ public class GraveEntity extends Entity {
             List<ItemStack> unslotted = new ArrayList<>();
             PlayerInventory playerInventory = player.getInventory();
             inventory.heldStacks.forEach(stack -> {
-                //if(!TrinketsCompat.handleQuickLoot(stack, unslotted, player)){
-                if(true){
+                if(!TrinketsCompat.handleQuickLoot(stack, unslotted, player)){
                     if(stack.contains(Riftbone.SAVED_SLOT)){
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
