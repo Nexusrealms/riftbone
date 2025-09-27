@@ -5,6 +5,7 @@
   "mixins": [
     "ExampleMixin",
     "PlayerEntityMixin",
+    "PlayerInventoryMixin",
     "ServerPlayerEntityMixin"
   ],
   "injectors": {
