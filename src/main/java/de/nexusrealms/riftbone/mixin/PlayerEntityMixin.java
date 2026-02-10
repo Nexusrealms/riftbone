@@ -21,7 +21,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Inject(method = "dropInventory", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;vanishCursedItems()V", shift = At.Shift.AFTER), cancellable = true)
     public void createGrave(CallbackInfo ci){
         GraveEntity graveEntity = new GraveEntity((PlayerEntity) (Object) this);
-        getWorld().spawnEntity(graveEntity);
+        getEntityWorld().spawnEntity(graveEntity);
         ci.cancel();
     }
 }

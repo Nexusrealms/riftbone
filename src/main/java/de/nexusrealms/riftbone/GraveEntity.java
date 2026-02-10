@@ -46,8 +46,8 @@ public class GraveEntity extends Entity {
         super(type, world);
     }
     public GraveEntity(PlayerEntity entity) {
-        super(Riftbone.GRAVE, entity.getWorld());
-        dataTracker.set(OWNER, Optional.of(new LazyEntityReference<>(entity.getUuid())));
+        super(Riftbone.GRAVE, entity.getEntityWorld());
+        dataTracker.set(OWNER, Optional.of(LazyEntityReference.of(entity)));
         setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
@@ -88,7 +88,7 @@ public class GraveEntity extends Entity {
     @Override
     protected void readCustomData(ReadView readView) {
         //Automatic data migration
-        readView.read("owner", Uuids.INT_STREAM_CODEC).ifPresent(uuid1 -> dataTracker.set(OWNER, Optional.of(new LazyEntityReference<>(uuid1))));
+        readView.read("owner", Uuids.INT_STREAM_CODEC).ifPresent(uuid1 -> dataTracker.set(OWNER, Optional.of(LazyEntityReference.ofUUID(uuid))));
         ReadView.TypedListReadView<ItemStack> list = readView.getTypedListView("inventory", ItemStack.CODEC);
         if(!list.isEmpty()){
             inventory.readDataList(list);
@@ -99,7 +99,7 @@ public class GraveEntity extends Entity {
                 inventory.setStack(stackWithSlot.slot(), stackWithSlot.stack());
             }
         }
-        LazyEntityReference<LivingEntity> lazyEntityReference = LazyEntityReference.fromDataOrPlayerName(readView, "Owner", this.getWorld());
+        LazyEntityReference<LivingEntity> lazyEntityReference = LazyEntityReference.fromDataOrPlayerName(readView, "Owner", this.getEntityWorld());
         if (lazyEntityReference != null) {
             this.dataTracker.set(OWNER, Optional.of(lazyEntityReference));
         } else {
@@ -127,18 +127,18 @@ public class GraveEntity extends Entity {
 
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
-        if(!getWorld().isClient()){
-            if(!getWorld().getServer().getGameRules().getBoolean(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())){
+        if(getEntityWorld() instanceof ServerWorld world){
+            if(world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())){
                 if(player.isSneaking()){
                     quickLoot(player);
                     return ActionResult.SUCCESS;
                 } else {
-                    getWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
                     player.openHandledScreen(new GraveEntity.GraveScreenHandlerFactory(this));
                     return ActionResult.SUCCESS;
                 }
             }
-            this.getWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
+            this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
             return ActionResult.FAIL;
         }
 
@@ -158,14 +158,14 @@ public class GraveEntity extends Entity {
         } else if (!this.hasNoGravity()) {
             this.setVelocity(this.getVelocity().add(0.0, -0.04, 0.0));
         }
-        if (!this.getWorld().isClient && this.age % 100 == 0 && inventory.isEmpty()) {
-            getWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+        if (!this.getEntityWorld().isClient() && this.age % 100 == 0 && inventory.isEmpty()) {
+            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
             this.discard();
         }
-        if (this.getWorld().isClient) {
+        if (this.getEntityWorld().isClient()) {
             this.noClip = false;
         } else {
-            this.noClip = !this.getWorld().isSpaceEmpty(this, this.getBoundingBox().contract(1.0E-7));
+            this.noClip = !this.getEntityWorld().isSpaceEmpty(this, this.getBoundingBox().contract(1.0E-7));
             if (this.noClip) {
                 this.pushOutOfBlocks(this.getX(), (this.getBoundingBox().minY + this.getBoundingBox().maxY) / 2.0, this.getZ());
             }
@@ -175,7 +175,7 @@ public class GraveEntity extends Entity {
             this.move(MovementType.SELF, this.getVelocity());
             float g = 0.98F;
             if (this.isOnGround()) {
-                g = this.getWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY()- 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
+                g = this.getEntityWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY()- 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
             }
             if (getY() <= -64) {
                 setPos(getX(), -64, getZ());
@@ -193,7 +193,7 @@ public class GraveEntity extends Entity {
         int i = bl ? 2 : 40;
 
         this.velocityDirty |= this.updateWaterState();
-        if (!this.getWorld().isClient) {
+        if (!this.getEntityWorld().isClient()) {
             double d = this.getVelocity().subtract(vec3d).lengthSquared();
             if (d > 0.01) {
                 this.velocityDirty = true;
@@ -212,7 +212,8 @@ public class GraveEntity extends Entity {
         return this.dataTracker.get(OWNER).orElse(null);
     }
     private void quickLoot(PlayerEntity player){
-        if(getWorld().getServer().getGameRules().getBoolean(Riftbone.QUICK_LOOTING_ALLOWED) && (!getWorld().getServer().getGameRules().getBoolean(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))){
+        if(!(player.getEntityWorld() instanceof ServerWorld world)) return;
+        if(world.getGameRules().getValue(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))){
             List<ItemStack> unslotted = new ArrayList<>();
             PlayerInventory playerInventory = player.getInventory();
             inventory.heldStacks.forEach(stack -> {
@@ -234,9 +235,9 @@ public class GraveEntity extends Entity {
                 playerInventory.offer(stack, false);
             });
             this.discard();
-            getWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
         } else {
-            this.getWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
+            this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
         }
     }
     public boolean shouldRenderName() {

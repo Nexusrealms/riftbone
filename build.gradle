@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.11-SNAPSHOT'
+	id 'net.fabricmc.fabric-loom-remap' version '1.15-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -25,9 +25,10 @@ repositories {
 		url = "https://maven.terraformersmc.com/"
 	}
 	maven {
-		name "nexusrealmsReleases"
-		url "https://maven.riftrealms.de/releases"
+		name "Nucleoid"
+		url = 'https://maven.nucleoid.xyz/releases'
 	}
+
 
 }
 
@@ -39,7 +40,7 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation ("dev.emi:trinkets:${project.trinkets_version}" )
+	modImplementation ("eu.pb4.fork:trinkets:${project.trinkets_version}" )
 }
 
 processResources {

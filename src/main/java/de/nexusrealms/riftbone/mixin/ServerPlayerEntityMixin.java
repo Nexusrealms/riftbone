@@ -5,9 +5,10 @@ import de.nexusrealms.riftbone.SoulboundHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
+import net.minecraft.world.rule.GameRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,14 +24,14 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
         super(world, profile);
     }
 
-    @Shadow public abstract boolean startRiding(Entity entity, boolean force);
-
     @Shadow public abstract boolean shouldDamagePlayer(PlayerEntity player);
 
 
+    @Shadow public abstract ServerWorld getEntityWorld();
+
     @Inject(method = "copyFrom", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/server/network/ServerPlayerInteractionManager;setGameMode(Lnet/minecraft/world/GameMode;Lnet/minecraft/world/GameMode;)V"))
     public void copySoulbounds(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci){
-        if (!(this.getWorld().getServer().getGameRules().getBoolean(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) && !alive) {
+        if (!(this.getEntityWorld().getGameRules().getValue(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) && !alive) {
             SoulboundHandler.transferSoulbounds(oldPlayer, (ServerPlayerEntity) (Object) this);
         }
     }

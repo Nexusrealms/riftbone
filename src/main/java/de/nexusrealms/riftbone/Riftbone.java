@@ -1,10 +1,9 @@
 package de.nexusrealms.riftbone;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.serialization.Codec;
 import net.fabricmc.api.ModInitializer;
 
-import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
-import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.ComponentType;
 import net.minecraft.entity.EntityType;
@@ -15,8 +14,12 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
+import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.util.Identifier;
-import net.minecraft.world.GameRules;
+import net.minecraft.world.rule.GameRule;
+import net.minecraft.world.rule.GameRuleCategory;
+import net.minecraft.world.rule.GameRuleType;
+import net.minecraft.world.rule.GameRuleVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +37,9 @@ public class Riftbone implements ModInitializer {
 
 	public static final TagKey<Item> SOULBOUND = TagKey.of(Registries.ITEM.getKey(), Identifier.of(MOD_ID, "soulbound"));
 
-	public static final GameRules.Key<GameRules.BooleanRule> OWNER_ONLY_LOOTING = GameRuleRegistry.register("ownerOnlyLooting", GameRules.Category.PLAYER, GameRuleFactory.createBooleanRule(false));
-	public static final GameRules.Key<GameRules.BooleanRule> OWNER_ONLY_QUICK_LOOTING = GameRuleRegistry.register("ownerOnlyQuickLooting", GameRules.Category.PLAYER, GameRuleFactory.createBooleanRule(true));
-	public static final GameRules.Key<GameRules.BooleanRule> QUICK_LOOTING_ALLOWED = GameRuleRegistry.register("quickLootingAllowed", GameRules.Category.PLAYER, GameRuleFactory.createBooleanRule(true));
+	public static final GameRule<Boolean> OWNER_ONLY_LOOTING = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "owner_only_looting"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, false, FeatureSet.empty()));
+	public static final GameRule<Boolean> OWNER_ONLY_QUICK_LOOTING = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "owner_onlyy_quick_looting"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, true, FeatureSet.empty()));
+	public static final GameRule<Boolean> QUICK_LOOTING_ALLOWED = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "quick_looting_allowed"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, true, FeatureSet.empty()));
 
 	public static boolean isTrinketsLoaded = false;
 	@Override
