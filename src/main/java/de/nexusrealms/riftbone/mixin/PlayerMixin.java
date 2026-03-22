@@ -31,8 +31,8 @@ public abstract class PlayerMixin extends LivingEntity {
                     graveEntity.setPosRaw(graveEntity.getX(),-64,graveEntity.getZ());
                 }
             }
+            graveEntity.setNoGravity(true);
         }
-        graveEntity.setNoGravity(true);
         graveEntity.setDeltaMovement(0,0,0);
         level().addFreshEntity(graveEntity);
         ci.cancel();
