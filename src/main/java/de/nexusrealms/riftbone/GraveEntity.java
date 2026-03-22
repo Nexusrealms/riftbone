@@ -48,14 +48,18 @@ public class GraveEntity extends Entity {
     public GraveEntity(PlayerEntity entity) {
         super(Riftbone.GRAVE, entity.getEntityWorld());
         dataTracker.set(OWNER, Optional.of(LazyEntityReference.of(entity)));
-        setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
+        if (entity.getEntityWorld() instanceof ServerWorld && ((ServerWorld) entity.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_SUFFIX)) {
+            setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
+        } else {
+            setCustomName(Text.literal(entity.getName().getString()));
+        }
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
         TrinketsCompat.onGraveSpawn(entity);
     }
 
     private void addStack(PlayerEntity player, ItemStack stack, int slot) {
-        if(!SoulboundHandler.isSoulbound(stack, player)) {
+        if (!SoulboundHandler.isSoulbound(stack, player)) {
             stack.set(Riftbone.SAVED_SLOT, slot);
             inventory.addStack(stack);
         }
@@ -90,11 +94,11 @@ public class GraveEntity extends Entity {
         //Automatic data migration
         readView.read("owner", Uuids.INT_STREAM_CODEC).ifPresent(uuid1 -> dataTracker.set(OWNER, Optional.of(LazyEntityReference.ofUUID(uuid))));
         ReadView.TypedListReadView<ItemStack> list = readView.getTypedListView("inventory", ItemStack.CODEC);
-        if(!list.isEmpty()){
+        if (!list.isEmpty()) {
             inventory.readDataList(list);
         }
 
-        for(StackWithSlot stackWithSlot : readView.getTypedListView("contents", StackWithSlot.CODEC)) {
+        for (StackWithSlot stackWithSlot : readView.getTypedListView("contents", StackWithSlot.CODEC)) {
             if (stackWithSlot.isValidSlot(inventory.size())) {
                 inventory.setStack(stackWithSlot.slot(), stackWithSlot.stack());
             }
@@ -110,7 +114,7 @@ public class GraveEntity extends Entity {
     @Override
     protected void writeCustomData(WriteView writeView) {
         WriteView.ListAppender<StackWithSlot> listAppender = writeView.getListAppender("contents", StackWithSlot.CODEC);
-        for(int i = 0; i < inventory.size(); ++i) {
+        for (int i = 0; i < inventory.size(); ++i) {
             ItemStack itemStack = inventory.getStack(i);
             if (!itemStack.isEmpty()) {
                 listAppender.add(new StackWithSlot(i, itemStack));
@@ -127,13 +131,15 @@ public class GraveEntity extends Entity {
 
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
-        if(getEntityWorld() instanceof ServerWorld world){
-            if(world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())){
-                if(player.isSneaking()){
+        if (getEntityWorld() instanceof ServerWorld world) {
+            if (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())) {
+                if (player.isSneaking()) {
                     quickLoot(player);
                     return ActionResult.SUCCESS;
                 } else {
-                    getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    if (world.getGameRules().getValue(Riftbone.ENABLE_GRAVE_OPEN_SOUND)) {
+                        getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    }
                     player.openHandledScreen(new GraveEntity.GraveScreenHandlerFactory(this));
                     return ActionResult.SUCCESS;
                 }
@@ -175,10 +181,18 @@ public class GraveEntity extends Entity {
             this.move(MovementType.SELF, this.getVelocity());
             float g = 0.98F;
             if (this.isOnGround()) {
-                g = this.getEntityWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY()- 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
+                g = this.getEntityWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY() - 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
             }
-            if (getY() <= -64) {
-                setPos(getX(), -64, getZ());
+            if(getY()<=-64) {
+                if (getEntityWorld() instanceof ServerWorld) {
+                    if (((ServerWorld) getEntityWorld()).getGameRules().getValue(Riftbone.VOID_GRAVES_WARP_UP) == true && getEntityWorld().getRegistryKey() == World.END) { //make sure we're in the end
+                        setPos(getX(), 64, getZ());
+                    } else {
+                        setPos(getX(), -64, getZ());
+                    }
+                    this.setVelocity(0, 0, 0);
+                    this.setNoGravity(true);
+                }
             }
             this.setVelocity(this.getVelocity().multiply((double) g, 0.98, (double) g));
             if (this.isOnGround()) {
@@ -199,11 +213,12 @@ public class GraveEntity extends Entity {
                 this.velocityDirty = true;
             }
         }
-
-
+        if(this.lastX != this.getX() || this.lastZ != this.getZ() && this.hasNoGravity()) { //return the grave's gravity on being moved (eg. fishing rod)
+            this.setNoGravity(false);
+        }
     }
-    private boolean isOwner(UUID uuid){
-        if(dataTracker.get(OWNER).isEmpty()) return false;
+    private boolean isOwner(UUID uuid) {
+        if (dataTracker.get(OWNER).isEmpty()) return false;
         UUID uuid1 = dataTracker.get(OWNER).get().getUuid();
         return uuid1.equals(uuid);
     }
@@ -211,17 +226,17 @@ public class GraveEntity extends Entity {
     public LazyEntityReference<LivingEntity> getOwnerNullable() {
         return this.dataTracker.get(OWNER).orElse(null);
     }
-    private void quickLoot(PlayerEntity player){
-        if(!(player.getEntityWorld() instanceof ServerWorld world)) return;
-        if(world.getGameRules().getValue(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))){
+    private void quickLoot(PlayerEntity player) {
+        if (!(player.getEntityWorld() instanceof ServerWorld world)) return;
+        if (world.getGameRules().getValue(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))) {
             List<ItemStack> unslotted = new ArrayList<>();
             PlayerInventory playerInventory = player.getInventory();
             inventory.heldStacks.forEach(stack -> {
-                if(!TrinketsCompat.handleQuickLoot(stack, unslotted, player)){
-                    if(stack.contains(Riftbone.SAVED_SLOT)){
+                if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
+                    if (stack.contains(Riftbone.SAVED_SLOT)) {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
-                        if(playerInventory.getStack(slot).isEmpty() || ItemEntity.canMerge(stack, playerInventory.getStack(slot))){
+                        if (playerInventory.getStack(slot).isEmpty() || ItemEntity.canMerge(stack, playerInventory.getStack(slot))) {
                             playerInventory.insertStack(slot, stack);
                         } else {
                             unslotted.add(stack);
@@ -275,6 +290,5 @@ public class GraveEntity extends Entity {
         public @NotNull ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
             return GenericContainerScreenHandler.createGeneric9x6(syncId, inv, this.entity.inventory);
         }
-
     }
 }

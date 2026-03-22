@@ -14,7 +14,9 @@ import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,8 +39,12 @@ public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderStat
     public void render(EntityRenderState renderState, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState) {
         super.render(renderState, matrices, queue, cameraState);
         matrices.push();
+        float g = MathHelper.sin(renderState.age / 10.0F) * 0.1F + 0.1F;
+        matrices.translate(0.0F, g, 0.0F);
+        float h = ItemEntity.getRotation(renderState.age, 0);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotation(h));
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
         SkullBlockEntityModel.SkullModelState skullModelState = new SkullBlockEntityModel.SkullModelState();
-        queue.submitModel(skullBlockEntityModel, skullModelState, matrices, layer, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV, 0, null);
+        queue.submitModel(skullBlockEntityModel, skullModelState, matrices, layer, renderState.light, OverlayTexture.DEFAULT_UV, 0, null);
         matrices.pop();    }
 }
