@@ -165,9 +165,7 @@ public class GraveEntity extends Entity {
             this.setVelocity(this.getVelocity().add(0.0, -0.04, 0.0));
         }
         if (!this.getEntityWorld().isClient() && this.age % 100 == 0 && inventory.isEmpty()) {
-            if(this.getEntityWorld() instanceof ServerWorld && ((ServerWorld) this.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)){
-                getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
-            }
+            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
             this.discard();
         }
         if (this.getEntityWorld().isClient()) {
@@ -252,9 +250,7 @@ public class GraveEntity extends Entity {
                 playerInventory.offer(stack, false);
             });
             this.discard();
-            if(this.getEntityWorld() instanceof ServerWorld && ((ServerWorld) this.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)){
-                getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
-            }
+            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
         } else {
             this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
         }
@@ -288,12 +284,7 @@ public class GraveEntity extends Entity {
         }
 
         public Text getDisplayName() {
-            boolean graveSuffix = ((ServerWorld) this.entity.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_SUFFIX);
-            if (!graveSuffix) {
-                return this.entity.getDisplayName().copy().append("'s Remains");
-            } else {
-                return this.entity.getDisplayName();
-            }
+            return this.entity.getDisplayName();
         }
 
         public @NotNull ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
