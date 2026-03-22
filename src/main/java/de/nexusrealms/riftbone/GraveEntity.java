@@ -132,7 +132,7 @@ public class GraveEntity extends Entity {
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
         if (getEntityWorld() instanceof ServerWorld world) {
-            if (world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())) {
+            if (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())) {
                 if (player.isSneaking()) {
                     quickLoot(player);
                     return ActionResult.SUCCESS;
