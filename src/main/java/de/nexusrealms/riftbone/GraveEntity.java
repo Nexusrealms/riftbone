@@ -1,35 +1,41 @@
 package de.nexusrealms.riftbone;
 
-import net.minecraft.entity.*;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.inventory.StackWithSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Entity.MovementEmission;
+import net.minecraft.world.entity.EntityReference;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.ItemStackWithSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,204 +46,204 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class GraveEntity extends Entity {
-    protected static final TrackedData<Optional<LazyEntityReference<LivingEntity>>> OWNER = DataTracker.registerData(GraveEntity.class, TrackedDataHandlerRegistry.LAZY_ENTITY_REFERENCE);
+    protected static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> OWNER = SynchedEntityData.defineId(GraveEntity.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
 
-    public GraveEntity(EntityType<?> type, World world) {
+    public GraveEntity(EntityType<?> type, Level world) {
         super(type, world);
     }
-    public GraveEntity(PlayerEntity entity) {
-        super(Riftbone.GRAVE, entity.getEntityWorld());
-        dataTracker.set(OWNER, Optional.of(LazyEntityReference.of(entity)));
-        if (entity.getEntityWorld() instanceof ServerWorld && ((ServerWorld) entity.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_SUFFIX)) {
-            setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
+    public GraveEntity(Player entity) {
+        super(Riftbone.GRAVE, entity.level());
+        entityData.set(OWNER, Optional.of(EntityReference.of(entity)));
+        if (entity.level() instanceof ServerLevel && ((ServerLevel) entity.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_SUFFIX)) {
+            setCustomName(Component.literal(entity.getName().getString() + "'s grave"));
         } else {
-            setCustomName(Text.literal(entity.getName().getString()));
+            setCustomName(Component.literal(entity.getName().getString()));
         }
         placeItemsInGrave(entity);
-        copyPositionAndRotation(entity);
+        copyPosition(entity);
         TrinketsCompat.onGraveSpawn(entity);
     }
 
-    private void addStack(PlayerEntity player, ItemStack stack, int slot) {
+    private void addStack(Player player, ItemStack stack, int slot) {
         if (!SoulboundHandler.isSoulbound(stack, player)) {
             stack.set(Riftbone.SAVED_SLOT, slot);
-            inventory.addStack(stack);
+            inventory.addItem(stack);
         }
     }
-    private void placeItemsInGrave(PlayerEntity entity) {
-        for (int i = 0; i < entity.getInventory().size(); i++) {
-            addStack(entity, entity.getInventory().getStack(i), i);
+    private void placeItemsInGrave(Player entity) {
+        for (int i = 0; i < entity.getInventory().getContainerSize(); i++) {
+            addStack(entity, entity.getInventory().getItem(i), i);
         }
         TrinketsCompat.addTrinketsToGrave(inventory, entity);
     }
-    private final SimpleInventory inventory = new SimpleInventory(54) {
-        public ItemStack removeStack(int slot) {
-            ItemStack stack = super.removeStack(slot);
+    private final SimpleContainer inventory = new SimpleContainer(54) {
+        public ItemStack removeItemNoUpdate(int slot) {
+            ItemStack stack = super.removeItemNoUpdate(slot);
             stack.remove(Riftbone.SAVED_SLOT);
             return stack;
         }
 
         @Override
-        public ItemStack removeStack(int slot, int amount) {
-            ItemStack stack = super.removeStack(slot);
+        public ItemStack removeItem(int slot, int amount) {
+            ItemStack stack = super.removeItemNoUpdate(slot);
             stack.remove(Riftbone.SAVED_SLOT);
             return stack;
         }
     };
 
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(OWNER, Optional.empty());
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(OWNER, Optional.empty());
     }
 
     @Override
-    protected void readCustomData(ReadView readView) {
+    protected void readAdditionalSaveData(ValueInput readView) {
         //Automatic data migration
-        readView.read("owner", Uuids.INT_STREAM_CODEC).ifPresent(uuid1 -> dataTracker.set(OWNER, Optional.of(LazyEntityReference.ofUUID(uuid))));
-        ReadView.TypedListReadView<ItemStack> list = readView.getTypedListView("inventory", ItemStack.CODEC);
+        readView.read("owner", UUIDUtil.CODEC).ifPresent(uuid1 -> entityData.set(OWNER, Optional.of(EntityReference.of(uuid))));
+        ValueInput.TypedInputList<ItemStack> list = readView.listOrEmpty("inventory", ItemStack.CODEC);
         if (!list.isEmpty()) {
-            inventory.readDataList(list);
+            inventory.fromItemList(list);
         }
 
-        for (StackWithSlot stackWithSlot : readView.getTypedListView("contents", StackWithSlot.CODEC)) {
-            if (stackWithSlot.isValidSlot(inventory.size())) {
-                inventory.setStack(stackWithSlot.slot(), stackWithSlot.stack());
+        for (ItemStackWithSlot stackWithSlot : readView.listOrEmpty("contents", ItemStackWithSlot.CODEC)) {
+            if (stackWithSlot.isValidInContainer(inventory.getContainerSize())) {
+                inventory.setItem(stackWithSlot.slot(), stackWithSlot.stack());
             }
         }
-        LazyEntityReference<LivingEntity> lazyEntityReference = LazyEntityReference.fromDataOrPlayerName(readView, "Owner", this.getEntityWorld());
+        EntityReference<LivingEntity> lazyEntityReference = EntityReference.readWithOldOwnerConversion(readView, "Owner", this.level());
         if (lazyEntityReference != null) {
-            this.dataTracker.set(OWNER, Optional.of(lazyEntityReference));
+            this.entityData.set(OWNER, Optional.of(lazyEntityReference));
         } else {
-            this.dataTracker.set(OWNER, Optional.empty());
+            this.entityData.set(OWNER, Optional.empty());
         }
     }
 
     @Override
-    protected void writeCustomData(WriteView writeView) {
-        WriteView.ListAppender<StackWithSlot> listAppender = writeView.getListAppender("contents", StackWithSlot.CODEC);
-        for (int i = 0; i < inventory.size(); ++i) {
-            ItemStack itemStack = inventory.getStack(i);
+    protected void addAdditionalSaveData(ValueOutput writeView) {
+        ValueOutput.TypedOutputList<ItemStackWithSlot> listAppender = writeView.list("contents", ItemStackWithSlot.CODEC);
+        for (int i = 0; i < inventory.getContainerSize(); ++i) {
+            ItemStack itemStack = inventory.getItem(i);
             if (!itemStack.isEmpty()) {
-                listAppender.add(new StackWithSlot(i, itemStack));
+                listAppender.add(new ItemStackWithSlot(i, itemStack));
             }
         }
-        LazyEntityReference<LivingEntity> lazyEntityReference = this.getOwnerNullable();
-        LazyEntityReference.writeData(lazyEntityReference, writeView, "Owner");
+        EntityReference<LivingEntity> lazyEntityReference = this.getOwnerNullable();
+        EntityReference.store(lazyEntityReference, writeView, "Owner");
     }
 
     @Override
-    public boolean canHit() {
+    public boolean isPickable() {
         return true;
     }
 
     @Override
-    public ActionResult interact(PlayerEntity player, Hand hand) {
-        if (getEntityWorld() instanceof ServerWorld world) {
-            if (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUuid())) {
-                if (player.isSneaking()) {
+    public InteractionResult interact(Player player, InteractionHand hand) {
+        if (level() instanceof ServerLevel world) {
+            if (!world.getGameRules().get(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUUID())) {
+                if (player.isShiftKeyDown()) {
                     quickLoot(player);
-                    return ActionResult.SUCCESS;
+                    return InteractionResult.SUCCESS;
                 } else {
-                    if (world.getGameRules().getValue(Riftbone.ENABLE_GRAVE_OPEN_SOUND)) {
-                        getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    if (world.getGameRules().get(Riftbone.ENABLE_GRAVE_OPEN_SOUND)) {
+                        level().playSound(null, blockPosition(), SoundEvents.BARREL_OPEN, SoundSource.BLOCKS, 1f, 1f);
                     }
-                    player.openHandledScreen(new GraveEntity.GraveScreenHandlerFactory(this));
-                    return ActionResult.SUCCESS;
+                    player.openMenu(new GraveEntity.GraveScreenHandlerFactory(this));
+                    return InteractionResult.SUCCESS;
                 }
             }
-            this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
-            return ActionResult.FAIL;
+            this.level().playSound(null, blockPosition(), SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1f, 1f);
+            return InteractionResult.FAIL;
         }
 
-        return ActionResult.PASS;
+        return InteractionResult.PASS;
     }
     public void tick() {
         super.tick();
-        this.lastX = this.getX();
-        this.lastY = this.getY();
-        this.lastZ = this.getZ();
-        Vec3d vec3d = this.getVelocity();
-        float f = this.getStandingEyeHeight() - 0.11111111F;
-        if (this.isTouchingWater() && this.getFluidHeight(FluidTags.WATER) > (double) f) {
+        this.xo = this.getX();
+        this.yo = this.getY();
+        this.zo = this.getZ();
+        Vec3 vec3d = this.getDeltaMovement();
+        float f = this.getEyeHeight() - 0.11111111F;
+        if (this.isInWater() && this.getFluidHeight(FluidTags.WATER) > (double) f) {
             this.applyWaterBuoyancy();
         } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > (double) f) {
             this.applyLavaBuoyancy();
-        } else if (!this.hasNoGravity()) {
-            this.setVelocity(this.getVelocity().add(0.0, -0.04, 0.0));
+        } else if (!this.isNoGravity()) {
+            this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.04, 0.0));
         }
-        if (!this.getEntityWorld().isClient() && this.age % 100 == 0 && inventory.isEmpty()) {
-            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+        if (!this.level().isClientSide() && this.tickCount % 100 == 0 && inventory.isEmpty()) {
+            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
             this.discard();
         }
-        if (this.getEntityWorld().isClient()) {
-            this.noClip = false;
+        if (this.level().isClientSide()) {
+            this.noPhysics = false;
         } else {
-            this.noClip = !this.getEntityWorld().isSpaceEmpty(this, this.getBoundingBox().contract(1.0E-7));
-            if (this.noClip) {
-                this.pushOutOfBlocks(this.getX(), (this.getBoundingBox().minY + this.getBoundingBox().maxY) / 2.0, this.getZ());
+            this.noPhysics = !this.level().noCollision(this, this.getBoundingBox().deflate(1.0E-7));
+            if (this.noPhysics) {
+                this.moveTowardsClosestSpace(this.getX(), (this.getBoundingBox().minY + this.getBoundingBox().maxY) / 2.0, this.getZ());
             }
         }
 
-        if (!this.isOnGround() || this.getVelocity().horizontalLengthSquared() > 9.999999747378752E-6 || (this.age + this.getId()) % 4 == 0) {
-            this.move(MovementType.SELF, this.getVelocity());
+        if (!this.onGround() || this.getDeltaMovement().horizontalDistanceSqr() > 9.999999747378752E-6 || (this.tickCount + this.getId()) % 4 == 0) {
+            this.move(MoverType.SELF, this.getDeltaMovement());
             float g = 0.98F;
-            if (this.isOnGround()) {
-                g = this.getEntityWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY() - 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
+            if (this.onGround()) {
+                g = this.level().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY() - 1, this.getBlockZ())).getBlock().getFriction() * 0.98F;
             }
             if(getY()<=-64) {
-                if (getEntityWorld() instanceof ServerWorld) {
-                    if (((ServerWorld) getEntityWorld()).getGameRules().getValue(Riftbone.VOID_GRAVES_WARP_UP) == true && getEntityWorld().getRegistryKey() == World.END) { //make sure we're in the end
-                        setPos(getX(), 64, getZ());
+                if (level() instanceof ServerLevel) {
+                    if (((ServerLevel) level()).getGameRules().get(Riftbone.VOID_GRAVES_WARP_UP) == true && level().dimension() == Level.END) { //make sure we're in the end
+                        setPosRaw(getX(), 64, getZ());
                     } else {
-                        setPos(getX(), -64, getZ());
+                        setPosRaw(getX(), -64, getZ());
                     }
-                    this.setVelocity(0, 0, 0);
+                    this.setDeltaMovement(0, 0, 0);
                     this.setNoGravity(true);
                 }
             }
-            this.setVelocity(this.getVelocity().multiply((double) g, 0.98, (double) g));
-            if (this.isOnGround()) {
-                Vec3d vec3d2 = this.getVelocity();
+            this.setDeltaMovement(this.getDeltaMovement().multiply((double) g, 0.98, (double) g));
+            if (this.onGround()) {
+                Vec3 vec3d2 = this.getDeltaMovement();
                 if (vec3d2.y < 0.0) {
-                    this.setVelocity(vec3d2.multiply(1.0, -0.5, 1.0));
+                    this.setDeltaMovement(vec3d2.multiply(1.0, -0.5, 1.0));
                 }
             }
         }
 
-        boolean bl = MathHelper.floor(this.lastX) != MathHelper.floor(this.getX()) || MathHelper.floor(this.lastY) != MathHelper.floor(this.getY()) || MathHelper.floor(this.lastZ) != MathHelper.floor(this.getZ());
+        boolean bl = Mth.floor(this.xo) != Mth.floor(this.getX()) || Mth.floor(this.yo) != Mth.floor(this.getY()) || Mth.floor(this.zo) != Mth.floor(this.getZ());
         int i = bl ? 2 : 40;
 
-        this.velocityDirty |= this.updateWaterState();
-        if (!this.getEntityWorld().isClient()) {
-            double d = this.getVelocity().subtract(vec3d).lengthSquared();
+        this.needsSync |= this.updateInWaterStateAndDoFluidPushing();
+        if (!this.level().isClientSide()) {
+            double d = this.getDeltaMovement().subtract(vec3d).lengthSqr();
             if (d > 0.01) {
-                this.velocityDirty = true;
+                this.needsSync = true;
             }
         }
-        if(this.lastX != this.getX() || this.lastZ != this.getZ() && this.hasNoGravity()) { //return the grave's gravity on being moved (eg. fishing rod)
+        if(this.xo != this.getX() || this.zo != this.getZ() && this.isNoGravity()) { //return the grave's gravity on being moved (eg. fishing rod)
             this.setNoGravity(false);
         }
     }
     private boolean isOwner(UUID uuid) {
-        if (dataTracker.get(OWNER).isEmpty()) return false;
-        UUID uuid1 = dataTracker.get(OWNER).get().getUuid();
+        if (entityData.get(OWNER).isEmpty()) return false;
+        UUID uuid1 = entityData.get(OWNER).get().getUUID();
         return uuid1.equals(uuid);
     }
     @Nullable
-    public LazyEntityReference<LivingEntity> getOwnerNullable() {
-        return this.dataTracker.get(OWNER).orElse(null);
+    public EntityReference<LivingEntity> getOwnerNullable() {
+        return this.entityData.get(OWNER).orElse(null);
     }
-    private void quickLoot(PlayerEntity player) {
-        if (!(player.getEntityWorld() instanceof ServerWorld world)) return;
-        if (world.getGameRules().getValue(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().getValue(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUuid()))) {
+    private void quickLoot(Player player) {
+        if (!(player.level() instanceof ServerLevel world)) return;
+        if (world.getGameRules().get(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().get(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUUID()))) {
             List<ItemStack> unslotted = new ArrayList<>();
-            PlayerInventory playerInventory = player.getInventory();
-            inventory.heldStacks.forEach(stack -> {
+            Inventory playerInventory = player.getInventory();
+            inventory.items.forEach(stack -> {
                 if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
-                    if (stack.contains(Riftbone.SAVED_SLOT)) {
+                    if (stack.has(Riftbone.SAVED_SLOT)) {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
-                        if (playerInventory.getStack(slot).isEmpty() || ItemEntity.canMerge(stack, playerInventory.getStack(slot))) {
-                            playerInventory.insertStack(slot, stack);
+                        if (playerInventory.getItem(slot).isEmpty() || ItemEntity.areMergable(stack, playerInventory.getItem(slot))) {
+                            playerInventory.add(slot, stack);
                         } else {
                             unslotted.add(stack);
                         }
@@ -247,48 +253,48 @@ public class GraveEntity extends Entity {
                 }
             });
             unslotted.forEach(stack -> {
-                playerInventory.offer(stack, false);
+                playerInventory.placeItemBackInInventory(stack, false);
             });
             this.discard();
-            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
         } else {
-            this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
+            this.level().playSound(null, blockPosition(), SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1f, 1f);
         }
     }
-    public boolean shouldRenderName() {
+    public boolean shouldShowName() {
         return true;
     }
-    protected Entity.MoveEffect getMoveEffect() {
-        return MoveEffect.NONE;
+    protected Entity.MovementEmission getMovementEmission() {
+        return MovementEmission.NONE;
     }
 
     @Override
-    public boolean damage(ServerWorld world, DamageSource source, float amount) {
+    public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
         return false;
     }
 
     private void applyWaterBuoyancy() {
-        Vec3d vec3d = this.getVelocity();
-        this.setVelocity(vec3d.x * 0.9900000095367432, vec3d.y + (double) (vec3d.y < 0.05999999865889549 ? 5.0E-4F : 0.0F), vec3d.z * 0.9900000095367432);
+        Vec3 vec3d = this.getDeltaMovement();
+        this.setDeltaMovement(vec3d.x * 0.9900000095367432, vec3d.y + (double) (vec3d.y < 0.05999999865889549 ? 5.0E-4F : 0.0F), vec3d.z * 0.9900000095367432);
     }
 
     private void applyLavaBuoyancy() {
-        Vec3d vec3d = this.getVelocity();
-        this.setVelocity(vec3d.x * 0.949999988079071, vec3d.y + (double) (vec3d.y < 0.05999999865889549 ? 5.0E-4F : 0.0F), vec3d.z * 0.949999988079071);
+        Vec3 vec3d = this.getDeltaMovement();
+        this.setDeltaMovement(vec3d.x * 0.949999988079071, vec3d.y + (double) (vec3d.y < 0.05999999865889549 ? 5.0E-4F : 0.0F), vec3d.z * 0.949999988079071);
     }
-    private static class GraveScreenHandlerFactory implements NamedScreenHandlerFactory {
+    private static class GraveScreenHandlerFactory implements MenuProvider {
         private final GraveEntity entity;
 
         private GraveScreenHandlerFactory(GraveEntity entity) {
             this.entity = entity;
         }
 
-        public Text getDisplayName() {
+        public Component getDisplayName() {
             return this.entity.getDisplayName();
         }
 
-        public @NotNull ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
-            return GenericContainerScreenHandler.createGeneric9x6(syncId, inv, this.entity.inventory);
+        public @NotNull AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
+            return ChestMenu.sixRows(syncId, inv, this.entity.inventory);
         }
     }
 }
