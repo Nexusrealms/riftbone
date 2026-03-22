@@ -183,8 +183,16 @@ public class GraveEntity extends Entity {
             if (this.isOnGround()) {
                 g = this.getEntityWorld().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY() - 1, this.getBlockZ())).getBlock().getSlipperiness() * 0.98F;
             }
-            if (getY() <= -64) {
-                setPos(getX(), -64, getZ());
+            if(getY()<=-64) {
+                if (getEntityWorld() instanceof ServerWorld) {
+                    if (((ServerWorld) getEntityWorld()).getGameRules().getValue(Riftbone.VOID_GRAVES_WARP_UP) == true && getEntityWorld().getRegistryKey() == World.END) { //make sure we're in the end
+                        setPos(getX(), 64, getZ());
+                    } else {
+                        setPos(getX(), -64, getZ());
+                    }
+                    this.setVelocity(0, 0, 0);
+                    this.setNoGravity(true);
+                }
             }
             this.setVelocity(this.getVelocity().multiply((double) g, 0.98, (double) g));
             if (this.isOnGround()) {
@@ -205,17 +213,9 @@ public class GraveEntity extends Entity {
                 this.velocityDirty = true;
             }
         }
-        if(this.lastX != this.getX() || this.lastZ != this.getZ() && this.hasNoGravity()){
+        if(this.lastX != this.getX() || this.lastZ != this.getZ() && this.hasNoGravity()) { //return the grave's gravity on being moved (eg. fishing rod)
             this.setNoGravity(false);
         }
-        //redundancy / if falls into void post-spawn.
-        if(!getEntityWorld().isClient() && getEntityWorld().getRegistryKey() == World.END && this.getY() < 0){ // tp grave up
-            this.setPos(this.getX(),60,this.getZ());
-            this.setNoGravity(true);
-            this.setVelocity(0,0,0);
-        }
-
-
     }
     private boolean isOwner(UUID uuid) {
         if (dataTracker.get(OWNER).isEmpty()) return false;
