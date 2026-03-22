@@ -171,7 +171,9 @@ public class GraveEntity extends Entity {
             this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.04, 0.0));
         }
         if (!this.level().isClientSide() && this.tickCount % 100 == 0 && inventory.isEmpty()) {
-            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            if(this.level() instanceof ServerLevel && ((ServerLevel) this.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)){
+                level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            }
             this.discard();
         }
         if (this.level().isClientSide()) {
@@ -256,7 +258,9 @@ public class GraveEntity extends Entity {
                 playerInventory.placeItemBackInInventory(stack, false);
             });
             this.discard();
-            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            if(this.level() instanceof ServerLevel && ((ServerLevel) this.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)) {
+                level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            }
         } else {
             this.level().playSound(null, blockPosition(), SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1f, 1f);
         }
@@ -290,7 +294,11 @@ public class GraveEntity extends Entity {
         }
 
         public Component getDisplayName() {
-            return this.entity.getDisplayName();
+            if(this.entity.level() instanceof ServerLevel && ((ServerLevel) this.entity.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_SUFFIX)) {
+                return this.entity.getDisplayName();
+            } else {
+                return this.entity.getDisplayName().copy().append("'s Remains");
+            }
         }
 
         public @NotNull AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
