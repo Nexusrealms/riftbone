@@ -3,10 +3,9 @@
   "package": "de.nexusrealms.riftbone.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ExampleMixin",
-    "PlayerEntityMixin",
-    "PlayerInventoryMixin",
-    "ServerPlayerEntityMixin"
+    "PlayerMixin",
+    "InventoryMixin",
+    "ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
