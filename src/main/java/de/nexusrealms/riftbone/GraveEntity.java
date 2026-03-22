@@ -48,7 +48,12 @@ public class GraveEntity extends Entity {
     public GraveEntity(PlayerEntity entity) {
         super(Riftbone.GRAVE, entity.getEntityWorld());
         dataTracker.set(OWNER, Optional.of(LazyEntityReference.of(entity)));
-        setCustomName(Text.literal(entity.getName().getString() + "'s grave"));
+        if(entity.getEntityWorld() instanceof  ServerWorld && ((ServerWorld) entity.getEntityWorld()).getGameRules().getValue(Riftbone.ENABLE_GRAVE_SUFFIX)){
+            setCustomName(Text.literal(entity.getName().getString()+"'s grave"));
+        }
+        else{
+            setCustomName(Text.literal(entity.getName().getString()));
+        }
         placeItemsInGrave(entity);
         copyPositionAndRotation(entity);
         TrinketsCompat.onGraveSpawn(entity);
@@ -133,7 +138,9 @@ public class GraveEntity extends Entity {
                     quickLoot(player);
                     return ActionResult.SUCCESS;
                 } else {
-                    getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    if(world.getGameRules().getValue(Riftbone.ENABLE_GRAVE_OPEN_SOUND)) {
+                        getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1f, 1f);
+                    }
                     player.openHandledScreen(new GraveEntity.GraveScreenHandlerFactory(this));
                     return ActionResult.SUCCESS;
                 }
@@ -159,7 +166,7 @@ public class GraveEntity extends Entity {
             this.setVelocity(this.getVelocity().add(0.0, -0.04, 0.0));
         }
         if (!this.getEntityWorld().isClient() && this.age % 100 == 0 && inventory.isEmpty()) {
-            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+                getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
             this.discard();
         }
         if (this.getEntityWorld().isClient()) {
@@ -235,9 +242,9 @@ public class GraveEntity extends Entity {
                 playerInventory.offer(stack, false);
             });
             this.discard();
-            getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
+                getEntityWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
         } else {
-            this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
+                this.getEntityWorld().playSound(null, getBlockPos(), SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 1f, 1f);
         }
     }
     public boolean shouldRenderName() {
