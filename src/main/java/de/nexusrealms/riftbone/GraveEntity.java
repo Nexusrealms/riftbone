@@ -205,6 +205,15 @@ public class GraveEntity extends Entity {
                 this.velocityDirty = true;
             }
         }
+        if(this.lastX != this.getX() || this.lastZ != this.getZ() && this.hasNoGravity()){
+            this.setNoGravity(false);
+        }
+        //redundancy / if falls into void post-spawn.
+        if(!getEntityWorld().isClient() && getEntityWorld().getRegistryKey() == World.END && this.getY() < 0){ // tp grave up
+            this.setPos(this.getX(),60,this.getZ());
+            this.setNoGravity(true);
+            this.setVelocity(0,0,0);
+        }
 
 
     }

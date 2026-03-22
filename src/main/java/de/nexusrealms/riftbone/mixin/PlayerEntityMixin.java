@@ -21,6 +21,11 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Inject(method = "dropInventory", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;vanishCursedItems()V", shift = At.Shift.AFTER), cancellable = true)
     public void createGrave(CallbackInfo ci){
         GraveEntity graveEntity = new GraveEntity((PlayerEntity) (Object) this);
+        if(!getEntityWorld().isClient() && getEntityWorld().getRegistryKey() == World.END && graveEntity.getY() < 0){ // tp grave up
+            graveEntity.setPos(graveEntity.getX(),60,graveEntity.getZ());
+            graveEntity.setNoGravity(true);
+            graveEntity.setVelocity(0,0,0);
+        }
         getEntityWorld().spawnEntity(graveEntity);
         ci.cancel();
     }
