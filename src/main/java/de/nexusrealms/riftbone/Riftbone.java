@@ -37,7 +37,6 @@ public class Riftbone implements ModInitializer {
 
 	public static final TagKey<Item> SOULBOUND = TagKey.of(Registries.ITEM.getKey(), Identifier.of(MOD_ID, "soulbound"));
 
-    //gamerules currently arent changeable ingame as far as i can tell. ill make a seperate PR if i find a fix
     public static final GameRule<Boolean> ENABLE_GRAVE_SUFFIX = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "enable_grave_suffix"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, false, FeatureSet.empty())); //set to false by default because barrel sound is annoying
     public static final GameRule<Boolean> ENABLE_GRAVE_OPEN_SOUND = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "enable_grave_opening_sound"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, false, FeatureSet.empty())); //set to false by default because barrel sound is annoying
     public static final GameRule<Boolean> OWNER_ONLY_LOOTING = Registry.register(Registries.GAME_RULE, Identifier.of(MOD_ID, "owner_only_looting"), new GameRule<>(GameRuleCategory.PLAYER, GameRuleType.BOOL, BoolArgumentType.bool(), GameRuleVisitor::visitBoolean, Codec.BOOL, (value) -> value ? 1 : 0, false, FeatureSet.empty()));
