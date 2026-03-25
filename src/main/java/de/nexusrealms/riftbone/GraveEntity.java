@@ -192,8 +192,8 @@ public class GraveEntity extends Entity {
                 g = this.level().getBlockState(new BlockPos(this.getBlockX(), this.getBlockY() - 1, this.getBlockZ())).getBlock().getFriction() * 0.98F;
             }
             if(getY()<=-64) {
-                if (level() instanceof ServerLevel) {
-                    if (((ServerLevel) level()).getGameRules().get(Riftbone.VOID_GRAVES_WARP_UP) == true && level().dimension() == Level.END) { //make sure we're in the end
+                if (level() instanceof ServerLevel level) {
+                    if (level.getGameRules().get(Riftbone.VOID_GRAVES_WARP_UP) && level().dimension() == Level.END) { //make sure we're in the end
                         setPosRaw(getX(), 64, getZ());
                     } else {
                         setPosRaw(getX(), -64, getZ());
@@ -221,7 +221,7 @@ public class GraveEntity extends Entity {
                 this.needsSync = true;
             }
         }
-        if(this.xo != this.getX() || this.zo != this.getZ() && this.isNoGravity()) { //return the grave's gravity on being moved (eg. fishing rod)
+        if(this.xo != this.getX() || this.zo != this.getZ() && this.isNoGravity() && this.getY() >= 64) { //return the grave's gravity on being moved (eg. fishing rod)
             this.setNoGravity(false);
         }
     }
