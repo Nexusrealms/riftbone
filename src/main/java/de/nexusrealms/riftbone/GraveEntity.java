@@ -61,7 +61,7 @@ public class GraveEntity extends Entity {
         }
         placeItemsInGrave(entity);
         copyPosition(entity);
-        TrinketsCompat.onGraveSpawn(entity);
+//        TrinketsCompat.onGraveSpawn(entity);
     }
 
     private void addStack(Player player, ItemStack stack, int slot) {
@@ -74,7 +74,7 @@ public class GraveEntity extends Entity {
         for (int i = 0; i < entity.getInventory().getContainerSize(); i++) {
             addStack(entity, entity.getInventory().getItem(i), i);
         }
-        TrinketsCompat.addTrinketsToGrave(inventory, entity);
+//        TrinketsCompat.addTrinketsToGrave(inventory, entity);
     }
     private final SimpleContainer inventory = new SimpleContainer(54) {
         public ItemStack removeItemNoUpdate(int slot) {
@@ -136,7 +136,7 @@ public class GraveEntity extends Entity {
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand) {
+    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
         if (level() instanceof ServerLevel world) {
             if (!world.getGameRules().get(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUUID())) {
                 if (player.isShiftKeyDown()) {
@@ -212,7 +212,7 @@ public class GraveEntity extends Entity {
         boolean bl = Mth.floor(this.xo) != Mth.floor(this.getX()) || Mth.floor(this.yo) != Mth.floor(this.getY()) || Mth.floor(this.zo) != Mth.floor(this.getZ());
         int i = bl ? 2 : 40;
 
-        this.needsSync |= this.updateInWaterStateAndDoFluidPushing();
+        this.needsSync |= this.updateFluidInteraction();
         if (!this.level().isClientSide()) {
             double d = this.getDeltaMovement().subtract(vec3d).lengthSqr();
             if (d > 0.01) {
@@ -238,7 +238,7 @@ public class GraveEntity extends Entity {
             List<ItemStack> unslotted = new ArrayList<>();
             Inventory playerInventory = player.getInventory();
             inventory.items.forEach(stack -> {
-                if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
+//                if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
                     if (stack.has(Riftbone.SAVED_SLOT)) {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
@@ -250,7 +250,7 @@ public class GraveEntity extends Entity {
                     } else {
                         unslotted.add(stack);
                     }
-                }
+//                }
             });
             unslotted.forEach(stack -> {
                 playerInventory.placeItemBackInInventory(stack, false);
