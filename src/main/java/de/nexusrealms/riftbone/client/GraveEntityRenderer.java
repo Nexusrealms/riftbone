@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -23,6 +23,7 @@ public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderStat
     private final SkullModelBase skullBlockEntityModel;
     private final Identifier texture = Identifier.withDefaultNamespace("textures/entity/skeleton/skeleton.png");
     private final RenderType layer = SkullBlockRenderer.getSkullRenderType(SkullBlock.Types.SKELETON, null);
+
     public GraveEntityRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
         skullBlockEntityModel = new SkullModel(ctx.getModelSet().bakeLayer(ModelLayers.SKELETON_SKULL));
@@ -33,17 +34,31 @@ public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderStat
         return new EntityRenderState();
     }
 
-
     @Override
-    public void submit(EntityRenderState renderState, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
-        super.submit(renderState, matrices, queue, cameraState);
-        matrices.pushPose();
+    public void submit(EntityRenderState renderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraState) {
+        super.submit(renderState, poseStack, submitNodeCollector, cameraState);
+        poseStack.pushPose();
         float g = Mth.sin(renderState.ageInTicks / 10.0F) * 0.1F + 0.1F;
-        matrices.translate(0.0F, g, 0.0F);
+        poseStack.translate(0.0F, g, 0.0F);
         float h = ItemEntity.getSpin(renderState.ageInTicks, 0);
-        matrices.mulPose(Axis.YP.rotation(h));
-        matrices.mulPose(Axis.XP.rotationDegrees(180));
+        poseStack.mulPose(Axis.YP.rotation(h));
+        poseStack.mulPose(Axis.XP.rotationDegrees(180));
         SkullModelBase.State skullModelState = new SkullModelBase.State();
-        queue.submitModel(skullBlockEntityModel, skullModelState, matrices, layer, renderState.lightCoords, OverlayTexture.NO_OVERLAY, 0, null);
-        matrices.popPose();    }
+        submitNodeCollector.submitModel(skullBlockEntityModel, skullModelState, poseStack, layer, renderState.lightCoords, OverlayTexture.NO_OVERLAY, 0, null);
+        poseStack.popPose();
+    }
 }
+
+
+    //    @Override
+//    public void submit(EntityRenderState renderState, PoseStack matrices, SubmitNodeCollector queue, GameRenderState cameraState) {
+//        super.submit(renderState, matrices, queue, cameraState);
+//        matrices.pushPose();
+//        float g = Mth.sin(renderState.ageInTicks / 10.0F) * 0.1F + 0.1F;
+//        matrices.translate(0.0F, g, 0.0F);
+//        float h = ItemEntity.getSpin(renderState.ageInTicks, 0);
+//        matrices.mulPose(Axis.YP.rotation(h));
+//        matrices.mulPose(Axis.XP.rotationDegrees(180));
+//        SkullModelBase.State skullModelState = new SkullModelBase.State();
+//        queue.submitModel(skullBlockEntityModel, skullModelState, matrices, layer, renderState.lightCoords, OverlayTexture.NO_OVERLAY, 0, null);
+//        matrices.popPose();    }

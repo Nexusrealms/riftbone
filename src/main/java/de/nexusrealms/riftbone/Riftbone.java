@@ -56,7 +56,7 @@ public class Riftbone implements ModInitializer {
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, "grave"), GRAVE);
 		LOGGER.info("Hello Fabric world!");
 		isTrinketsLoaded = FabricLoader.getInstance().isModLoaded("trinkets");
-		TrinketsCompat.init();
+//		TrinketsCompat.init();
 		SoulboundCallback.IS_SOULBOUND.register((oldPlayer, stack) -> stack.is(SOULBOUND));
 	}
 }
