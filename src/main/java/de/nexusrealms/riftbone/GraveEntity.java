@@ -243,7 +243,11 @@ public class GraveEntity extends Entity {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
                         if (playerInventory.getItem(slot).isEmpty() || ItemEntity.areMergable(stack, playerInventory.getItem(slot))) {
-                            playerInventory.add(slot, stack);
+                            if(slot >= Inventory.INVENTORY_SIZE) {
+                                playerInventory.setItem(slot, stack);
+                            }else {
+                                playerInventory.add(slot, stack);
+                            }
                         } else {
                             unslotted.add(stack);
                         }
