@@ -61,7 +61,7 @@ public class GraveEntity extends Entity {
         }
         placeItemsInGrave(entity);
         copyPosition(entity);
-        TrinketsCompat.onGraveSpawn(entity);
+//        TrinketsCompat.onGraveSpawn(entity);
     }
 
     private void addStack(Player player, ItemStack stack, int slot) {
@@ -74,7 +74,7 @@ public class GraveEntity extends Entity {
         for (int i = 0; i < entity.getInventory().getContainerSize(); i++) {
             addStack(entity, entity.getInventory().getItem(i), i);
         }
-        TrinketsCompat.addTrinketsToGrave(inventory, entity);
+//        TrinketsCompat.addTrinketsToGrave(inventory, entity);
     }
     private final SimpleContainer inventory = new SimpleContainer(54) {
         public ItemStack removeItemNoUpdate(int slot) {
@@ -136,7 +136,7 @@ public class GraveEntity extends Entity {
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand) {
+    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
         if (level() instanceof ServerLevel world) {
             if (!world.getGameRules().get(Riftbone.OWNER_ONLY_LOOTING) || isOwner(player.getUUID())) {
                 if (player.isShiftKeyDown()) {
@@ -171,7 +171,9 @@ public class GraveEntity extends Entity {
             this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.04, 0.0));
         }
         if (!this.level().isClientSide() && this.tickCount % 100 == 0 && inventory.isEmpty()) {
-            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            if(this.level() instanceof ServerLevel && ((ServerLevel) this.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)){
+                level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            }
             this.discard();
         }
         if (this.level().isClientSide()) {
@@ -212,7 +214,7 @@ public class GraveEntity extends Entity {
         boolean bl = Mth.floor(this.xo) != Mth.floor(this.getX()) || Mth.floor(this.yo) != Mth.floor(this.getY()) || Mth.floor(this.zo) != Mth.floor(this.getZ());
         int i = bl ? 2 : 40;
 
-        this.needsSync |= this.updateInWaterStateAndDoFluidPushing();
+        this.needsSync |= this.updateFluidInteraction();
         if (!this.level().isClientSide()) {
             double d = this.getDeltaMovement().subtract(vec3d).lengthSqr();
             if (d > 0.01) {
@@ -238,25 +240,31 @@ public class GraveEntity extends Entity {
             List<ItemStack> unslotted = new ArrayList<>();
             Inventory playerInventory = player.getInventory();
             inventory.items.forEach(stack -> {
-                if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
+//                if (!TrinketsCompat.handleQuickLoot(stack, unslotted, player)) {
                     if (stack.has(Riftbone.SAVED_SLOT)) {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
                         if (playerInventory.getItem(slot).isEmpty() || ItemEntity.areMergable(stack, playerInventory.getItem(slot))) {
-                            playerInventory.add(slot, stack);
+                            if(slot >= Inventory.INVENTORY_SIZE) {
+                                playerInventory.setItem(slot, stack);
+                            }else {
+                                playerInventory.add(slot, stack);
+                            }
                         } else {
                             unslotted.add(stack);
                         }
                     } else {
                         unslotted.add(stack);
                     }
-                }
+//                }
             });
             unslotted.forEach(stack -> {
                 playerInventory.placeItemBackInInventory(stack, false);
             });
             this.discard();
-            level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            if(this.level() instanceof ServerLevel && ((ServerLevel) this.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_DESPAWN_SOUND)) {
+                level().playSound(null, blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 1f, 1f);
+            }
         } else {
             this.level().playSound(null, blockPosition(), SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1f, 1f);
         }
@@ -290,7 +298,11 @@ public class GraveEntity extends Entity {
         }
 
         public Component getDisplayName() {
-            return this.entity.getDisplayName();
+            if(this.entity.level() instanceof ServerLevel && ((ServerLevel) this.entity.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_SUFFIX)) {
+                return this.entity.getDisplayName();
+            } else {
+                return this.entity.getDisplayName().copy().append("'s Remains");
+            }
         }
 
         public @NotNull AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
