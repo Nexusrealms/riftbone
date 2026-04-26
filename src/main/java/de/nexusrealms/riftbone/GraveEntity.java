@@ -146,14 +146,14 @@ public class GraveEntity extends Entity {
             getWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.BLOCKS, 1f, 1f);
             this.kill();
         }
-        /*if (this.getWorld().isClient) {
+        if (this.getWorld().isClient) {
             this.noClip = false;
         } else {
             this.noClip = !this.getWorld().isSpaceEmpty(this, this.getBoundingBox().contract(1.0E-7));
             if (this.noClip) {
                 this.pushOutOfBlocks(this.getX(), (this.getBoundingBox().minY + this.getBoundingBox().maxY) / 2.0, this.getZ());
             }
-        }*/
+        }
 
         if (!this.isOnGround() || this.getVelocity().horizontalLengthSquared() > 9.999999747378752E-6 || (this.age + this.getId()) % 4 == 0) {
             this.move(MovementType.SELF, this.getVelocity());
