@@ -1,40 +1,40 @@
 package de.nexusrealms.riftbone.client;
 
 import de.nexusrealms.riftbone.GraveEntity;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.block.entity.SkullBlockEntityModel;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.entity.model.EntityModelLayers;
-import net.minecraft.client.render.entity.model.SkullEntityModel;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.RenderType;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.model.SkullModelBase;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.SkullModel;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.resources.ResourceLocation;
+import com.mojang.math.Axis;
 
 public class GraveEntityRenderer extends EntityRenderer<Entity> {
-    private final SkullBlockEntityModel skullBlockEntityModel;
-    private final Identifier texture = Identifier.ofVanilla("textures/entity/skeleton/skeleton.png");
-    public GraveEntityRenderer(EntityRendererFactory.Context ctx) {
+    private final SkullModelBase skullBlockEntityModel;
+    private final ResourceLocation texture = ResourceLocation.withDefaultNamespace("textures/entity/skeleton/skeleton.png");
+    public GraveEntityRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
-        skullBlockEntityModel = new SkullEntityModel(ctx.getModelLoader().getModelPart(EntityModelLayers.SKELETON_SKULL));
+        skullBlockEntityModel = new SkullModel(ctx.getModelSet().bakeLayer(ModelLayers.SKELETON_SKULL));
     }
 
     @Override
-    public Identifier getTexture(Entity entity) {
+    public ResourceLocation getTextureLocation(Entity entity) {
         return texture;
     }
 
     @Override
-    public void render(Entity entity, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+    public void render(Entity entity, float yaw, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, int light) {
         super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
-        matrices.push();
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
-        VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCullZOffset(texture));
-        skullBlockEntityModel.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV);
-        matrices.pop();
+        matrices.pushPose();
+        matrices.mulPose(Axis.XP.rotationDegrees(180));
+        VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderType.entityCutoutNoCullZOffset(texture));
+        skullBlockEntityModel.renderToBuffer(matrices, vertexConsumer, light, OverlayTexture.NO_OVERLAY);
+        matrices.popPose();
     }
 }
