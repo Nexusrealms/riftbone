@@ -26,6 +26,7 @@ public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderStat
 
     public GraveEntityRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
+        this.shadowRadius = 0.15f; //its small but matches contentsmp
         skullBlockEntityModel = new SkullModel(ctx.getModelSet().bakeLayer(ModelLayers.SKELETON_SKULL));
     }
 
@@ -38,8 +39,9 @@ public class GraveEntityRenderer extends EntityRenderer<Entity, EntityRenderStat
     public void submit(EntityRenderState renderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraState) {
         super.submit(renderState, poseStack, submitNodeCollector, cameraState);
         poseStack.pushPose();
+        poseStack.scale(0.75F,0.75F,0.75F);//0.75 scale matches content smp
         float g = Mth.sin(renderState.ageInTicks / 10.0F) * 0.1F + 0.1F;
-        poseStack.translate(0.0F, g, 0.0F);
+        poseStack.translate(0.0F, g+0.15, 0.0F);
         float h = ItemEntity.getSpin(renderState.ageInTicks, 0);
         poseStack.mulPose(Axis.YP.rotation(h));
         poseStack.mulPose(Axis.XP.rotationDegrees(180));
