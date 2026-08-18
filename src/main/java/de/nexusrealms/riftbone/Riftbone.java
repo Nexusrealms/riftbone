@@ -3,6 +3,8 @@ package de.nexusrealms.riftbone;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.serialization.Codec;
+import de.nexusrealms.riftbone.itemlogger.Config;
+import de.nexusrealms.riftbone.itemlogger.ItemLogger;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -27,7 +29,6 @@ import org.slf4j.LoggerFactory;
 public class Riftbone implements ModInitializer {
 	public static final String MOD_ID = "riftbone";
 	public static final String LEGACY_MOD_ID = "riftrealmsutils";
-
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
 	// That way, it's clear which mod wrote info, warnings, and errors.
@@ -52,6 +53,7 @@ public class Riftbone implements ModInitializer {
 		// This code runs as soon as Minecraft is in a mod-load-ready state.
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
+		ItemLogger.init();
 		Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, "saved_slot"), SAVED_SLOT);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, "grave"), GRAVE);
 		LOGGER.info("Hello Fabric world!");

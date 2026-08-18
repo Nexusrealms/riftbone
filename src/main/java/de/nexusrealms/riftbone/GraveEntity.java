@@ -1,5 +1,6 @@
 package de.nexusrealms.riftbone;
 
+import de.nexusrealms.riftbone.itemlogger.ItemLog;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -63,7 +64,18 @@ public class GraveEntity extends Entity {
         copyPosition(entity);
         TrinketsCompat.onGraveSpawn(entity);
     }
+    public GraveEntity(Vec3 pos, ItemLog log, ServerLevel level) {
+        super(Riftbone.GRAVE, level);
+        setCustomName(Component.literal("Item log of date " + log.date().toString()));
+        fromItemList(log.createInputList(registryAccess()));
+        setPos(pos);
+    }
+    public void fromItemList(ValueInput.TypedInputList<ItemStackWithSlot> typedInputList) {
+        inventory.clearContent();
 
+        typedInputList.forEach(itemStackWithSlot -> inventory.setItem(itemStackWithSlot.slot(), itemStackWithSlot.stack()));
+
+    }
     private void addStack(Player player, ItemStack stack, int slot) {
         if (!SoulboundHandler.isSoulbound(stack, player)) {
             stack.set(Riftbone.SAVED_SLOT, slot);
@@ -146,6 +158,7 @@ public class GraveEntity extends Entity {
                     if (world.getGameRules().get(Riftbone.ENABLE_GRAVE_OPEN_SOUND)) {
                         level().playSound(null, blockPosition(), SoundEvents.BARREL_OPEN, SoundSource.BLOCKS, 1f, 1f);
                     }
+                    Riftbone.LOGGER.info("{} looted a grave at {} : {}", player.getPlainTextName(), blockPosition().toShortString(), getDisplayName().getString());
                     player.openMenu(new GraveEntity.GraveScreenHandlerFactory(this));
                     return InteractionResult.SUCCESS;
                 }
@@ -237,6 +250,7 @@ public class GraveEntity extends Entity {
     private void quickLoot(Player player) {
         if (!(player.level() instanceof ServerLevel world)) return;
         if (world.getGameRules().get(Riftbone.QUICK_LOOTING_ALLOWED) && (!world.getGameRules().get(Riftbone.OWNER_ONLY_QUICK_LOOTING) || isOwner(player.getUUID()))) {
+            Riftbone.LOGGER.info("{} quick looted a grave at {} : {}", player.getPlainTextName(), blockPosition().toShortString(), getDisplayName().getString());
             List<ItemStack> unslotted = new ArrayList<>();
             Inventory playerInventory = player.getInventory();
             inventory.items.forEach(stack -> {

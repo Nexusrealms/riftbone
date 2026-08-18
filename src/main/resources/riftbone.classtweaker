@@ -1,0 +1,5 @@
+classTweaker v1 named
+accessible class net/minecraft/world/level/storage/TagValueOutput$TypedListWrapper
+accessible method net/minecraft/world/level/storage/TagValueOutput$TypedListWrapper <init> (Lnet/minecraft/util/ProblemReporter;Ljava/lang/String;Lcom/mojang/serialization/DynamicOps;Lcom/mojang/serialization/Codec;Lnet/minecraft/nbt/ListTag;)V
+accessible class net/minecraft/world/level/storage/TagValueInput$TypedListWrapper
+accessible method net/minecraft/world/level/storage/TagValueInput$TypedListWrapper <init> (Lnet/minecraft/util/ProblemReporter;Ljava/lang/String;Lnet/minecraft/world/level/storage/ValueInputContextHelper;Lcom/mojang/serialization/Codec;Lnet/minecraft/nbt/ListTag;)V

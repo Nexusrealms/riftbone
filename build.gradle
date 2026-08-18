@@ -9,7 +9,9 @@ group = project.maven_group
 base {
 	archivesName = project.archives_base_name
 }
-
+loom {
+	accessWidenerPath = file("src/main/resources/riftbone.classtweaker")
+}
 repositories {
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
@@ -41,6 +43,7 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modImplementation ("eu.pb4.fork:trinkets:${project.trinkets_version}" )
+	modImplementation include("eu.pb4:player-data-api:0.9.1+1.21.11")
 }
 
 processResources {

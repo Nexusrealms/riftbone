@@ -11,6 +11,7 @@
 		"homepage": "https://nexusrealms.de/",
 		"sources": "https://github.com/Nexusrealms/riftbone"
 	},
+	"accessWidener" : "riftbone.classtweaker",
 	"license": "MIT",
 	"icon": "assets/riftbone/icon.png",
 	"environment": "*",
