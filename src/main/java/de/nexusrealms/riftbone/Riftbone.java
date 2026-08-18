@@ -34,7 +34,7 @@ public class Riftbone implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final DataComponentType<Integer> SAVED_SLOT = DataComponentType.<Integer>builder().persistent(Codec.INT).build();
 
-	public static final EntityType<GraveEntity> GRAVE = EntityType.Builder.<GraveEntity>of(GraveEntity::new, MobCategory.MISC).sized(0.5f, 0.5f).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, "grave")));
+	public static final EntityType<GraveEntity> GRAVE = EntityType.Builder.<GraveEntity>of(GraveEntity::new, MobCategory.MISC).sized(0.4375F, 0.4375F).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, "grave")));
 
 	public static final TagKey<Item> SOULBOUND = TagKey.create(BuiltInRegistries.ITEM.key(), Identifier.fromNamespaceAndPath(MOD_ID, "soulbound"));
 
