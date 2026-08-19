@@ -11,7 +11,6 @@ import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.SimpleContainer;
@@ -97,7 +96,7 @@ public class GraveEntity extends Entity {
 
         @Override
         public ItemStack removeItem(int slot, int amount) {
-            ItemStack stack = super.removeItemNoUpdate(slot);
+            ItemStack stack = super.removeItem(slot, amount);
             stack.remove(Riftbone.SAVED_SLOT);
             return stack;
         }
@@ -238,6 +237,32 @@ public class GraveEntity extends Entity {
             this.setNoGravity(false);
         }
     }
+    /**
+     * Puts a stack back into the slot it was taken from, falling back to {@code unslotted} when that is not possible.
+     * <p>
+     * {@link Inventory#add(int, ItemStack)} must not be used for this: its backing list only holds the 36 main slots,
+     * while the armour and offhand indices (36+) live in the player's {@code EntityEquipment}. Passing one of those
+     * indices either threw {@code IndexOutOfBoundsException} after the stack had already been emptied (damaged items)
+     * or reported a partial insert as a success, which silently destroyed armour and offhand items on quick loot.
+     */
+    private static void restoreToSlot(Inventory playerInventory, int slot, ItemStack stack, List<ItemStack> unslotted) {
+        if (slot >= 0 && slot < playerInventory.getContainerSize()) {
+            ItemStack current = playerInventory.getItem(slot);
+            if (current.isEmpty()) {
+                playerInventory.setItem(slot, stack.copyAndClear());
+                return;
+            }
+            if (ItemStack.isSameItemSameComponents(current, stack)) {
+                int space = current.getMaxStackSize() - current.getCount();
+                if (space > 0) {
+                    current.grow(stack.split(space).getCount());
+                }
+            }
+        }
+        if (!stack.isEmpty()) {
+            unslotted.add(stack);
+        }
+    }
     private boolean isOwner(UUID uuid) {
         if (entityData.get(OWNER).isEmpty()) return false;
         UUID uuid1 = entityData.get(OWNER).get().getUUID();
@@ -258,11 +283,7 @@ public class GraveEntity extends Entity {
                     if (stack.has(Riftbone.SAVED_SLOT)) {
                         int slot = stack.get(Riftbone.SAVED_SLOT);
                         stack.remove(Riftbone.SAVED_SLOT);
-                        if (playerInventory.getItem(slot).isEmpty() || ItemEntity.areMergable(stack, playerInventory.getItem(slot))) {
-                            playerInventory.add(slot, stack);
-                        } else {
-                            unslotted.add(stack);
-                        }
+                        restoreToSlot(playerInventory, slot, stack, unslotted);
                     } else {
                         unslotted.add(stack);
                     }
