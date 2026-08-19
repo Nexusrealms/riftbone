@@ -75,6 +75,7 @@ public class GraveEntity extends Entity {
         typedInputList.forEach(itemStackWithSlot -> inventory.setItem(itemStackWithSlot.slot(), itemStackWithSlot.stack()));
 
     }
+
     private void addStack(Player player, ItemStack stack, int slot) {
         if (!SoulboundHandler.isSoulbound(stack, player)) {
             stack.set(Riftbone.SAVED_SLOT, slot);
@@ -188,6 +189,7 @@ public class GraveEntity extends Entity {
             }
             this.discard();
         }
+
         if (this.level().isClientSide()) {
             this.noPhysics = false;
         } else {
@@ -237,6 +239,13 @@ public class GraveEntity extends Entity {
             this.setNoGravity(false);
         }
     }
+
+    @Override
+    public void remove(RemovalReason removalReason) {
+        super.remove(removalReason);
+        if(removalReason.shouldDestroy()) Riftbone.LOGGER.info("Grave {} removed", getCustomName().getString());
+    }
+
     /**
      * Puts a stack back into the slot it was taken from, falling back to {@code unslotted} when that is not possible.
      * <p>
