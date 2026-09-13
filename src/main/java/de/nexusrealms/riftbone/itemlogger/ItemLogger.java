@@ -52,8 +52,7 @@ public class ItemLogger {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 dispatcher.register(Commands.literal("itemlog")
-                        .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_MODERATOR)))
-                                .requires(CommandSourceStack::isPlayer)
+                                                                        .requires(s -> s.isExecutedByPlayer() && CommandManager.requirePermissionLevel(new PermissionCheck.Require(DefaultPermissions.MODERATORS)).test(s))
                         .then(Commands.argument("log", IntegerArgumentType.integer(0, config.limit - 1))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> {
