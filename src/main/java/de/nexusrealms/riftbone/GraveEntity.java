@@ -272,7 +272,7 @@ public class GraveEntity extends Entity {
             unslotted.add(stack);
         }
     }
-    private boolean isOwner(UUID uuid) {
+    public boolean isOwner(UUID uuid) {
         if (entityData.get(OWNER).isEmpty()) return false;
         UUID uuid1 = entityData.get(OWNER).get().getUUID();
         return uuid1.equals(uuid);

@@ -7,8 +7,12 @@ import de.nexusrealms.riftbone.itemlogger.Config;
 import de.nexusrealms.riftbone.itemlogger.ItemLogger;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
@@ -19,12 +23,17 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.gamerules.GameRule;
 import net.minecraft.world.level.gamerules.GameRuleCategory;
 import net.minecraft.world.level.gamerules.GameRuleType;
 import net.minecraft.world.level.gamerules.GameRuleTypeVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class Riftbone implements ModInitializer {
 	public static final String MOD_ID = "riftbone";
@@ -60,5 +69,17 @@ public class Riftbone implements ModInitializer {
 		isTrinketsLoaded = FabricLoader.getInstance().isModLoaded("trinkets");
 		TrinketsCompat.init();
 		SoulboundCallback.IS_SOULBOUND.register((oldPlayer, stack) -> stack.is(SOULBOUND));
+		CommandRegistrationCallback.EVENT.register(((dispatcher, registryAccess, environment) -> dispatcher.register(Commands.literal("listmygraves")
+				.requires(CommandSourceStack::isPlayer)
+				.executes(context -> {
+					UUID player = context.getSource().getPlayer().getUUID();
+					context.getSource().sendSuccess(() -> Component.literal("Your graves:"), false);
+					StreamSupport.stream(context.getSource().getServer().getAllLevels().spliterator(), false)
+							.flatMap(level -> level.getEntities(EntityTypeTest.forClass(GraveEntity.class),
+									graveEntity -> graveEntity.isOwner(player)).stream())
+							.map(graveEntity -> Component.literal("Grave: " + graveEntity.blockPosition().toShortString() + " : " + graveEntity.level().dimension().identifier().toShortString()))
+							.forEach(mutableComponent -> context.getSource().sendSuccess(() -> mutableComponent, false));
+					return 1;
+				}))));
 	}
 }
