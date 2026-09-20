@@ -1,6 +1,7 @@
 package de.nexusrealms.riftbone;
 
 import de.nexusrealms.riftbone.itemlogger.ItemLog;
+import net.minecraft.ChatFormatting;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -47,7 +48,7 @@ import java.util.UUID;
 
 public class GraveEntity extends Entity {
     protected static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> OWNER = SynchedEntityData.defineId(GraveEntity.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
-
+    private boolean wasItemLog = false;
     public GraveEntity(EntityType<?> type, Level world) {
         super(type, world);
     }
@@ -65,8 +66,11 @@ public class GraveEntity extends Entity {
     }
     public GraveEntity(Vec3 pos, ItemLog log, ServerLevel level) {
         super(Riftbone.GRAVE, level);
+        wasItemLog = true;
         setCustomName(Component.literal("Item log of date " + log.date().toString()));
         fromItemList(log.createInputList(registryAccess()));
+        log.equipment().values().forEach(inventory::addItem);
+        log.trinkets().forEach(inventory::addItem);
         setPos(pos);
     }
     public void fromItemList(ValueInput.TypedInputList<ItemStackWithSlot> typedInputList) {
@@ -115,7 +119,7 @@ public class GraveEntity extends Entity {
         if (!list.isEmpty()) {
             inventory.fromItemList(list);
         }
-
+        wasItemLog = readView.getBooleanOr("wasItemLog", false);
         for (ItemStackWithSlot stackWithSlot : readView.listOrEmpty("contents", ItemStackWithSlot.CODEC)) {
             if (stackWithSlot.isValidInContainer(inventory.getContainerSize())) {
                 inventory.setItem(stackWithSlot.slot(), stackWithSlot.stack());
@@ -138,8 +142,13 @@ public class GraveEntity extends Entity {
                 listAppender.add(new ItemStackWithSlot(i, itemStack));
             }
         }
+        writeView.putBoolean("wasItemLog", wasItemLog);
         EntityReference<LivingEntity> lazyEntityReference = this.getOwnerNullable();
         EntityReference.store(lazyEntityReference, writeView, "Owner");
+    }
+
+    public boolean wasItemLog() {
+        return wasItemLog;
     }
 
     @Override
@@ -338,8 +347,8 @@ public class GraveEntity extends Entity {
         }
 
         public Component getDisplayName() {
-            if(this.entity.level() instanceof ServerLevel && ((ServerLevel) this.entity.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_SUFFIX)) {
-                return this.entity.getDisplayName();
+            if(entity.wasItemLog || (this.entity.level() instanceof ServerLevel && ((ServerLevel) this.entity.level()).getGameRules().get(Riftbone.ENABLE_GRAVE_SUFFIX))) {
+                return entity.wasItemLog ? this.entity.getDisplayName().copy().withStyle(ChatFormatting.RED) : entity.getDisplayName();
             } else {
                 return this.entity.getDisplayName().copy().append("'s Remains");
             }

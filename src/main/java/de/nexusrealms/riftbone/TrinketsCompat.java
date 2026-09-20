@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import dev.emi.trinkets.api.*;
 import dev.emi.trinkets.api.event.TrinketDropCallback;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.SimpleContainer;
@@ -37,6 +38,15 @@ public class TrinketsCompat {
                                 slotReferenceItemStackPair.getB().set(SAVED_TRINKET_SLOT, slotReferenceItemStackPair.getA().getId());
                                 graveInventory.addItem(slotReferenceItemStackPair.getB());
                             }));
+        }
+    }
+    public static List<ItemStack> collectTrinketsForItemLog(ServerPlayer player){
+        if(Riftbone.isTrinketsLoaded){
+            return TrinketsApi.getTrinketComponent(player).map(
+                    trinkets -> trinkets.getAllEquipped().stream().map(
+                            slotReferenceItemStackPair -> slotReferenceItemStackPair.getB().copy()).toList()).orElse(List.of());
+        } else {
+            return List.of();
         }
     }
     public static boolean handleQuickLoot(ItemStack stack, List<ItemStack> unslotted, Player player){

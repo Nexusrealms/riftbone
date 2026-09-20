@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionCheck;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.Vec3;
 
 import java.time.Duration;
@@ -52,8 +53,23 @@ public class ItemLogger {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 dispatcher.register(Commands.literal("itemlog")
-                                                                        .requires(s -> s.isPlayer() && Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_MODERATOR)).test(s))
-                        .then(Commands.argument("log", IntegerArgumentType.integer(0, config.limit - 1))
+                        .requires(s -> s.isPlayer() && Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_MODERATOR)).test(s))
+                                .then(Commands.literal("save")
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(context -> {
+                                                    ServerPlayer player = EntityArgument.getPlayer(context, "player");
+                                                    save(player, Optional.empty());
+                                                    return 1;
+                                                })))
+                                .then(Commands.literal("killallgraves")
+                                        .executes(context -> {
+                                            List<? extends GraveEntity> graves = context.getSource().getPlayer().level().getEntities(EntityTypeTest.forClass(GraveEntity.class), GraveEntity::wasItemLog);
+                                            graves.forEach(GraveEntity::discard);
+                                            context.getSource().sendSuccess(() -> graves.isEmpty() ? Component.literal("No graves to remove") : Component.literal("Removed " + graves.size() + " item log graves"), true);
+                                            return 1;
+                                        }))
+                        .then(Commands.literal("spawn")
+                                .then(Commands.argument("log", IntegerArgumentType.integer(0, config.limit - 1))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> {
                                             ServerPlayer player = EntityArgument.getPlayer(context, "player");
@@ -89,7 +105,7 @@ public class ItemLogger {
                                                 context.getSource().sendFailure(Component.literal("Player has no Item log, or this is not a valid player UUID"));
                                                 return 3;
                                             }
-                                        })))));
+                                        }))))));
     }
     private static void spawn(ServerLevel level, Vec3 position, ItemLog log){
         GraveEntity grave = new GraveEntity(position, log, level);
